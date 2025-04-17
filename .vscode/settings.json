@@ -56,5 +56,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "NN Project.sln"
+    "dotnet.defaultSolution": "Chef-D-oeuvre.sln"
 }
