@@ -15,11 +15,20 @@ public class DeathScreenManager : MonoBehaviour
     public string scoreFormat = "SCORE: {0}";
 
     private bool deathScreenActive = false;
+    
+    [Header("References")]
+    public GameManager gameManager;  // Reference to the GameManager
 
     void Awake()
     {
         Instance = this;
         deathScreen.SetActive(false);
+        
+        // If gameManager is not assigned, try to find it
+        if (gameManager == null)
+        {
+            gameManager = FindObjectOfType<GameManager>();
+        }
     }
 
     void Update()
@@ -62,8 +71,17 @@ public class DeathScreenManager : MonoBehaviour
         {
             playerController.SetPlayerDead(true);
         }
-
-        AudioManager.Instance?.StopMusic();
+        
+        // Inform GameManager that player is dead (will prevent pause menu access)
+        if (gameManager != null)
+        {
+            gameManager.SetPlayerDead(true);
+        }
+        else
+        {
+            // If GameManager not found for some reason, directly stop the music
+            AudioManager.Instance?.StopMusic();
+        }
     }
 
     public void RestartGame()
@@ -76,6 +94,12 @@ public class DeathScreenManager : MonoBehaviour
         if (playerController != null)
         {
             playerController.SetPlayerDead(false);
+        }
+        
+        // Reset game manager state (though we're reloading the scene, this is for safety)
+        if (gameManager != null)
+        {
+            gameManager.SetPlayerDead(false);
         }
         
         AudioManager.Instance?.PlayRandomMusic();

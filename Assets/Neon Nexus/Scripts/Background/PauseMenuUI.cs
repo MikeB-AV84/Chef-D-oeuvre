@@ -24,6 +24,14 @@ public class PauseMenuUI : MonoBehaviour
 
     void OnEnable()
     {
+        // Check if player is dead before proceeding
+        if (gameManager != null && gameManager.IsPlayerDead())
+        {
+            // Player is dead, don't show pause menu
+            gameObject.SetActive(false);
+            return;
+        }
+        
         // Set initial selected button when menu opens
         SetSelectedButton(resumeButton);
     }
@@ -53,6 +61,14 @@ public class PauseMenuUI : MonoBehaviour
 
     void Update()
     {
+        // First check if player is dead
+        if (gameManager != null && gameManager.IsPlayerDead())
+        {
+            // Player is dead, hide pause menu
+            gameObject.SetActive(false);
+            return;
+        }
+        
         // Handle controller input for navigation (when paused)
         HandleControllerInput();
         

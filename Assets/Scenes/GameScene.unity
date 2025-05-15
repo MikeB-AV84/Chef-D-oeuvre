@@ -818,8 +818,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0bd8a0a0d2302de43b2419097091bd73, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  menuButton: Menu_Button
   pauseMenuUI: {fileID: 589230028}
+  mainMenuSceneName: MainMenu
 --- !u!4 &191082412
 Transform:
   m_ObjectHideFlags: 0
@@ -7818,6 +7818,7 @@ MonoBehaviour:
   scoreText: {fileID: 190072413}
   restartButton: {fileID: 1574015778}
   scoreFormat: 'SCORE: {0}'
+  gameManager: {fileID: 0}
 --- !u!1 &1747228204
 GameObject:
   m_ObjectHideFlags: 0
