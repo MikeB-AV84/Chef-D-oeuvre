@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 6a296a1e369157b43a66a00dc0905a88
+guid: 7d4a1f7084d31c14e93e99bd2f2ec5a0
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -5724577985328020880
-    second: Space Dragon Studio - No Background_0
+      213: 78917328259475280
+    second: Space Dragon Studio - No Background 400x_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Space Dragon Studio - No Background_0
+      name: Space Dragon Studio - No Background 400x_0
       rect:
         serializedVersion: 2
-        x: 421
-        y: 115
-        width: 533
-        height: 534
+        x: 0
+        y: 0
+        width: 4096
+        height: 2284
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 072808707a63e80b0800000000000000
-      internalID: -5724577985328020880
+      spriteID: 057678554ee581100800000000000000
+      internalID: 78917328259475280
       vertices: []
       indices: 
       edges: []
