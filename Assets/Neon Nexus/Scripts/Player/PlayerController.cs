@@ -29,6 +29,9 @@ public class PlayerController : MonoBehaviour
     public TextMeshProUGUI boostText;
     private float currentBoost;
     private bool isBoosting;
+    
+    // Death state
+    private bool isDead = false;
 
     void Start()
     {
@@ -40,6 +43,9 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        // Don't process inputs if player is dead
+        if (isDead) return;
+        
         HandleMovementInput();
         HandleRotation();
         HandleShooting();
@@ -48,11 +54,17 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
+        // Don't apply movement if player is dead
+        if (isDead) 
+        {
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
+        
         ApplyMovement();
         ClampPosition();
 
         if (Input.GetKeyDown(KeyCode.Escape)) Application.Quit();
-        
     }
 
     void HandleMovementInput()
@@ -116,7 +128,17 @@ public class PlayerController : MonoBehaviour
     {
         GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
         Rigidbody2D rbBullet = bullet.GetComponent<Rigidbody2D>();
-        rbBullet.linearVelocity = firePoint.up * bulletSpeed;
+        
+        // Base bullet velocity
+        Vector2 bulletVelocity = firePoint.up * bulletSpeed;
+        
+        // Add player velocity if boosting
+        if (isBoosting)
+        {
+            bulletVelocity += rb.linearVelocity;
+        }
+        
+        rbBullet.linearVelocity = bulletVelocity;
         Destroy(bullet, 3f);
     }
 
@@ -145,5 +167,18 @@ public class PlayerController : MonoBehaviour
         moveSpeed *= multiplier;
         yield return new WaitForSeconds(duration);
         moveSpeed = originalSpeed;
+    }
+    
+    // New method for DeathScreenManager to call
+    public void SetPlayerDead(bool dead)
+    {
+        isDead = dead;
+        
+        // If dead, stop all movement
+        if (isDead)
+        {
+            rb.linearVelocity = Vector2.zero;
+            moveInput = Vector2.zero;
+        }
     }
 }

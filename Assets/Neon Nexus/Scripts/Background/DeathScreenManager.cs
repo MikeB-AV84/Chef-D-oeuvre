@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
 
 public class DeathScreenManager : MonoBehaviour
 {
@@ -23,12 +24,15 @@ public class DeathScreenManager : MonoBehaviour
 
     void Update()
     {
-        if (deathScreenActive && (
-            Input.GetKeyDown(KeyCode.Space) || 
-            Input.GetKeyDown(KeyCode.JoystickButton0) || // Gamepad A button
-            Input.GetMouseButtonDown(0))) // Left click
+        if (deathScreenActive)
         {
-            RestartGame();
+            // Only allow X button (JoystickButton2), Space, or Mouse click
+            if (Input.GetKeyDown(KeyCode.Space) || 
+                Input.GetKeyDown(KeyCode.JoystickButton2) || // X button only
+                Input.GetMouseButtonDown(0))
+            {
+                RestartGame();
+            }
         }
     }
 
@@ -39,13 +43,25 @@ public class DeathScreenManager : MonoBehaviour
         deathScreen.SetActive(true);
         deathScreenActive = true;
         
-        // Auto-select the button for gamepad navigation
-        restartButton.Select();
-        restartButton.OnSelect(null); // Visual feedback
+        // IMPORTANT: Disable button's onClick to prevent it from being triggered by Submit/A button
+        restartButton.onClick.RemoveAllListeners();
         
-        // For mouse users, make sure navigation isn't stuck
+        // Completely disable automatic button navigation
+        EventSystem.current.SetSelectedGameObject(null);
+        
+        // Visual feedback without actual selection
+        restartButton.transform.localScale = restartButton.transform.localScale * 1.1f;
+        
+        // For mouse users
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
+
+        // Disable player controller input
+        PlayerController playerController = FindObjectOfType<PlayerController>();
+        if (playerController != null)
+        {
+            playerController.SetPlayerDead(true);
+        }
 
         AudioManager.Instance?.StopMusic();
     }
@@ -54,6 +70,14 @@ public class DeathScreenManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         deathScreenActive = false;
+        
+        // Reset player state (though we're reloading the scene, this is for safety)
+        PlayerController playerController = FindObjectOfType<PlayerController>();
+        if (playerController != null)
+        {
+            playerController.SetPlayerDead(false);
+        }
+        
         AudioManager.Instance?.PlayRandomMusic();
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }

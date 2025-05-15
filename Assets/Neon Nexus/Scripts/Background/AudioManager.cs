@@ -15,8 +15,10 @@ public class AudioManager : MonoBehaviour
     public float fadeInDuration = 0.5f;
 
     [Header("Input Settings")]
-    public string skipButton = "RB_Button";
+    public string skipButton = "JoystickButton9";
 
+    // Add second audio source for smooth transitions
+    private AudioSource secondaryMusicSource;
     private List<AudioClip> playlist;
     private int currentTrackIndex = 0;
     private Coroutine musicRoutine;
@@ -38,8 +40,16 @@ public class AudioManager : MonoBehaviour
 
     private void Initialize()
     {
+        // Setup primary music source
         musicSource.loop = false;
         musicSource.volume = 0f; // Start at zero for fade-in
+        
+        // Create secondary audio source for crossfading
+        secondaryMusicSource = gameObject.AddComponent<AudioSource>();
+        secondaryMusicSource.loop = false;
+        secondaryMusicSource.volume = 0f;
+        
+        // Pre-shuffle playlist at initialization
         CreatePlaylist();
         StartMusic();
     }
@@ -53,12 +63,16 @@ public class AudioManager : MonoBehaviour
 
     private void ShufflePlaylist()
     {
-        for (int i = playlist.Count - 1; i > 0; i--)
+        // Use Fisher-Yates shuffle algorithm
+        System.Random rng = new System.Random();
+        int n = playlist.Count;
+        while (n > 1)
         {
-            int randomIndex = Random.Range(0, i + 1);
-            AudioClip temp = playlist[i];
-            playlist[i] = playlist[randomIndex];
-            playlist[randomIndex] = temp;
+            n--;
+            int k = rng.Next(n + 1);
+            AudioClip temp = playlist[k];
+            playlist[k] = playlist[n];
+            playlist[n] = temp;
         }
     }
 
@@ -101,10 +115,12 @@ public class AudioManager : MonoBehaviour
             musicSource.volume = musicVolume;
             
             // Wait for track to complete or skip
-            timer = fadeInDuration;
-            while (timer < musicSource.clip.length && !isSkipping)
+            float remainingTime = musicSource.clip.length - fadeInDuration;
+            float elapsed = 0f;
+            
+            while (elapsed < remainingTime && !isSkipping)
             {
-                timer += Time.unscaledDeltaTime;
+                elapsed += Time.unscaledDeltaTime;
                 yield return null;
             }
 
@@ -124,11 +140,16 @@ public class AudioManager : MonoBehaviour
                 musicSource.Stop();
                 musicSource.volume = 0f;
                 
-                // Delay between tracks
-                yield return new WaitForSecondsRealtime(trackSwitchDelay);
-                
-                // Advance to next track
+                // Delay between tracks - but prepare next track during this time
                 AdvanceTrack();
+                
+                // Pre-load next track during the delay
+                if (playlist.Count > 0)
+                {
+                    musicSource.clip = playlist[currentTrackIndex];
+                }
+                
+                yield return new WaitForSecondsRealtime(trackSwitchDelay);
             }
         }
     }
@@ -145,36 +166,50 @@ public class AudioManager : MonoBehaviour
     {
         if (isSkipping || playlist.Count == 0) return;
         
-        if (musicRoutine != null)
-        {
-            StopCoroutine(musicRoutine);
-            musicRoutine = null;
-        }
-        
-        musicRoutine = StartCoroutine(SkipRoutine());
+        StartCoroutine(CrossFadeSkipRoutine());
     }
 
-    private IEnumerator SkipRoutine()
+    private IEnumerator CrossFadeSkipRoutine()
     {
         isSkipping = true;
-
-        // Fade out
-        float startVolume = musicSource.volume;
+        
+        // Prepare the next track in the secondary source
+        AdvanceTrack();
+        secondaryMusicSource.clip = playlist[currentTrackIndex];
+        secondaryMusicSource.volume = 0f;
+        secondaryMusicSource.Play();
+        
+        // Cross-fade between the two sources
         float timer = 0f;
+        float startVolume = musicSource.volume;
+        
         while (timer < skipFadeDuration)
         {
-            musicSource.volume = Mathf.Lerp(startVolume, 0f, timer / skipFadeDuration);
+            float t = timer / skipFadeDuration;
+            musicSource.volume = Mathf.Lerp(startVolume, 0f, t);
+            secondaryMusicSource.volume = Mathf.Lerp(0f, musicVolume, t);
             timer += Time.unscaledDeltaTime;
             yield return null;
         }
-
+        
+        // Complete the transition
         musicSource.Stop();
-        AdvanceTrack();
-
-        // Reset skip flag before starting new playback
+        
+        // Swap the audio sources
+        AudioSource tempSource = musicSource;
+        musicSource = secondaryMusicSource;
+        secondaryMusicSource = tempSource;
+        
+        // Reset skip flag
         isSkipping = false;
         
-        // Start new playback directly
+        // If there was an active music routine, stop it
+        if (musicRoutine != null)
+        {
+            StopCoroutine(musicRoutine);
+        }
+        
+        // Start new playback routine
         musicRoutine = StartCoroutine(MusicPlaybackRoutine());
     }
 
@@ -183,9 +218,17 @@ public class AudioManager : MonoBehaviour
         currentTrackIndex++;
         if (currentTrackIndex >= playlist.Count)
         {
-            ShufflePlaylist();
+            // Instead of shuffling immediately, queue up a shuffle for next frame
+            StartCoroutine(ShuffleNextFrame());
             currentTrackIndex = 0;
         }
+    }
+    
+    private IEnumerator ShuffleNextFrame()
+    {
+        // Delay the shuffle to the next frame to prevent lag
+        yield return null;
+        ShufflePlaylist();
     }
 
     public void PlayRandomMusic()
@@ -196,7 +239,7 @@ public class AudioManager : MonoBehaviour
             musicRoutine = null;
         }
         
-        ShufflePlaylist();
+        StartCoroutine(ShuffleNextFrame());
         currentTrackIndex = 0;
         musicRoutine = StartCoroutine(MusicPlaybackRoutine());
     }
@@ -209,7 +252,23 @@ public class AudioManager : MonoBehaviour
             musicRoutine = null;
         }
         
+        StartCoroutine(FadeOutAndStop());
+    }
+    
+    private IEnumerator FadeOutAndStop()
+    {
+        float startVolume = musicSource.volume;
+        float timer = 0f;
+        
+        while (timer < skipFadeDuration)
+        {
+            musicSource.volume = Mathf.Lerp(startVolume, 0f, timer / skipFadeDuration);
+            timer += Time.unscaledDeltaTime;
+            yield return null;
+        }
+        
         musicSource.Stop();
+        musicSource.volume = 0f;
     }
     
     public void SetMusicVolume(float volume)
