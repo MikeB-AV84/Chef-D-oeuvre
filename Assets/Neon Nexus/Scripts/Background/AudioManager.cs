@@ -16,6 +16,7 @@ public class AudioManager : MonoBehaviour
 
     [Header("Input Settings")]
     public string skipButton = "JoystickButton9";
+    public float holdDuration = 2.0f; // Duration to hold button for pause/resume
 
     // Add second audio source for smooth transitions
     private AudioSource secondaryMusicSource;
@@ -23,6 +24,9 @@ public class AudioManager : MonoBehaviour
     private int currentTrackIndex = 0;
     private Coroutine musicRoutine;
     private bool isSkipping = false;
+    private bool isButtonHeld = false;
+    private float buttonHoldTimer = 0f;
+    private bool isPaused = false;
 
     private void Awake()
     {
@@ -156,9 +160,53 @@ public class AudioManager : MonoBehaviour
 
     private void Update()
     {
+        // Handle button press for skip
         if (Input.GetButtonDown(skipButton) || Input.GetKeyDown(KeyCode.E))
         {
-            SkipTrack();
+            isButtonHeld = true;
+            buttonHoldTimer = 0f;
+        }
+        
+        // Handle button hold for pause/resume
+        if (isButtonHeld)
+        {
+            // Check if button is still being held
+            if (Input.GetButton(skipButton) || Input.GetKey(KeyCode.E))
+            {
+                buttonHoldTimer += Time.deltaTime;
+                
+                // If held for the required duration, toggle pause state
+                if (buttonHoldTimer >= holdDuration)
+                {
+                    isButtonHeld = false; // Reset hold state
+                    TogglePause();
+                }
+            }
+            else
+            {
+                // Button was released before reaching hold threshold
+                isButtonHeld = false;
+                
+                // Only trigger skip if the button wasn't held long enough for pause
+                if (buttonHoldTimer < holdDuration)
+                {
+                    SkipTrack();
+                }
+            }
+        }
+    }
+    
+    private void TogglePause()
+    {
+        if (isPaused)
+        {
+            ResumeMusic();
+            isPaused = false;
+        }
+        else
+        {
+            PauseMusic();
+            isPaused = true;
         }
     }
 
@@ -287,6 +335,12 @@ public class AudioManager : MonoBehaviour
         if (musicSource.isPlaying)
         {
             musicSource.Pause();
+            
+            // Also pause secondary source if it's playing (during crossfade)
+            if (secondaryMusicSource.isPlaying)
+            {
+                secondaryMusicSource.Pause();
+            }
         }
     }
     
@@ -295,6 +349,12 @@ public class AudioManager : MonoBehaviour
         if (!musicSource.isPlaying)
         {
             musicSource.UnPause();
+            
+            // Also resume secondary source if it was playing
+            if (secondaryMusicSource.clip != null)
+            {
+                secondaryMusicSource.UnPause();
+            }
         }
     }
 }
