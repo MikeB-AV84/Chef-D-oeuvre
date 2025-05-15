@@ -6479,7 +6479,7 @@ MonoBehaviour:
   trackSwitchDelay: 1
   skipFadeDuration: 0.5
   fadeInDuration: 0.5
-  skipButton: RB_Button
+  skipButton: R3_Button
 --- !u!82 &1385532647
 AudioSource:
   m_ObjectHideFlags: 0
