@@ -16,7 +16,7 @@ public class AudioManager : MonoBehaviour
 
     [Header("Input Settings")]
     public string skipButton = "JoystickButton9";
-    public float holdDuration = 2.0f; // Duration to hold button for pause/resume
+    public float holdDuration = 1.0f; // Duration to hold button for pause/resume
 
     // Add second audio source for smooth transitions
     private AudioSource secondaryMusicSource;
