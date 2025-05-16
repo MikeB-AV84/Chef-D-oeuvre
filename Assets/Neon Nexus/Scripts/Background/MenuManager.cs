@@ -41,7 +41,6 @@ public class MenuManager : MonoBehaviour
     {
         // Handle keyboard shortcuts
         if (Input.GetKeyDown(KeyCode.Space)) StartGame();
-        if (Input.GetKeyDown(KeyCode.Escape)) QuitGame();
         
         // Controller input for navigation
         HandleControllerInput();
