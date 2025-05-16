@@ -1,11 +1,12 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance;
-    
+
     [Header("Music Settings")]
     public List<AudioClip> musicTracks;
     public AudioSource musicSource;
@@ -17,7 +18,7 @@ public class AudioManager : MonoBehaviour
     [Header("Input Settings")]
     public string skipButton = "JoystickButton9";
     public float doubleClickTime = 0.3f;
-    
+
     private AudioSource secondaryMusicSource;
     private List<AudioClip> playlist;
     private int currentTrackIndex = 0;
@@ -46,11 +47,11 @@ public class AudioManager : MonoBehaviour
     {
         musicSource.loop = false;
         musicSource.volume = 0f;
-        
+
         secondaryMusicSource = gameObject.AddComponent<AudioSource>();
         secondaryMusicSource.loop = false;
         secondaryMusicSource.volume = 0f;
-        
+
         CreatePlaylist();
         StartMusic();
     }
@@ -82,7 +83,7 @@ public class AudioManager : MonoBehaviour
         {
             StopCoroutine(musicRoutine);
         }
-        
+
         if (playlist.Count > 0)
         {
             musicRoutine = StartCoroutine(MusicPlaybackRoutine());
@@ -98,7 +99,7 @@ public class AudioManager : MonoBehaviour
             musicSource.clip = playlist[currentTrackIndex];
             musicSource.volume = 0f;
             musicSource.Play();
-            
+
             float timer = 0f;
             while (timer < fadeInDuration)
             {
@@ -107,10 +108,10 @@ public class AudioManager : MonoBehaviour
                 yield return null;
             }
             musicSource.volume = musicVolume;
-            
+
             float remainingTime = musicSource.clip.length - fadeInDuration;
             float elapsed = 0f;
-            
+
             while (elapsed < remainingTime && !isSkipping)
             {
                 elapsed += Time.unscaledDeltaTime;
@@ -127,16 +128,16 @@ public class AudioManager : MonoBehaviour
                     timer += Time.unscaledDeltaTime;
                     yield return null;
                 }
-                
+
                 musicSource.Stop();
                 musicSource.volume = 0f;
                 AdvanceTrack();
-                
+
                 if (playlist.Count > 0)
                 {
                     musicSource.clip = playlist[currentTrackIndex];
                 }
-                
+
                 yield return new WaitForSecondsRealtime(trackSwitchDelay);
             }
         }
@@ -147,7 +148,7 @@ public class AudioManager : MonoBehaviour
         if (Input.GetButtonDown(skipButton) || Input.GetKeyDown(KeyCode.E))
         {
             clickCount++;
-            
+
             if (clickCount == 1)
             {
                 lastClickTime = Time.time;
@@ -165,12 +166,12 @@ public class AudioManager : MonoBehaviour
     private IEnumerator ResetClickCount()
     {
         yield return new WaitForSeconds(doubleClickTime);
-        
+
         if (clickCount == 1)
         {
             TogglePause();
         }
-        
+
         clickCount = 0;
     }
 
@@ -191,22 +192,22 @@ public class AudioManager : MonoBehaviour
     public void SkipTrack()
     {
         if (isSkipping || playlist.Count == 0) return;
-        
+
         StartCoroutine(CrossFadeSkipRoutine());
     }
 
     private IEnumerator CrossFadeSkipRoutine()
     {
         isSkipping = true;
-        
+
         AdvanceTrack();
         secondaryMusicSource.clip = playlist[currentTrackIndex];
         secondaryMusicSource.volume = 0f;
         secondaryMusicSource.Play();
-        
+
         float timer = 0f;
         float startVolume = musicSource.volume;
-        
+
         while (timer < skipFadeDuration)
         {
             float t = timer / skipFadeDuration;
@@ -215,14 +216,14 @@ public class AudioManager : MonoBehaviour
             timer += Time.unscaledDeltaTime;
             yield return null;
         }
-        
+
         musicSource.Stop();
         AudioSource tempSource = musicSource;
         musicSource = secondaryMusicSource;
         secondaryMusicSource = tempSource;
-        
+
         isSkipping = false;
-        
+
         if (musicRoutine != null) StopCoroutine(musicRoutine);
         musicRoutine = StartCoroutine(MusicPlaybackRoutine());
     }
@@ -236,7 +237,7 @@ public class AudioManager : MonoBehaviour
             currentTrackIndex = 0;
         }
     }
-    
+
     private IEnumerator ShuffleNextFrame()
     {
         yield return null;
@@ -246,7 +247,7 @@ public class AudioManager : MonoBehaviour
     public void PlayRandomMusic()
     {
         if (musicRoutine != null) StopCoroutine(musicRoutine);
-        
+
         StartCoroutine(ShuffleNextFrame());
         currentTrackIndex = 0;
         musicRoutine = StartCoroutine(MusicPlaybackRoutine());
@@ -255,26 +256,26 @@ public class AudioManager : MonoBehaviour
     public void StopMusic()
     {
         if (musicRoutine != null) StopCoroutine(musicRoutine);
-        
+
         StartCoroutine(FadeOutAndStop());
     }
-    
+
     private IEnumerator FadeOutAndStop()
     {
         float startVolume = musicSource.volume;
         float timer = 0f;
-        
+
         while (timer < skipFadeDuration)
         {
             musicSource.volume = Mathf.Lerp(startVolume, 0f, timer / skipFadeDuration);
             timer += Time.unscaledDeltaTime;
             yield return null;
         }
-        
+
         musicSource.Stop();
         musicSource.volume = 0f;
     }
-    
+
     public void SetMusicVolume(float volume)
     {
         musicVolume = Mathf.Clamp01(volume);
@@ -283,7 +284,7 @@ public class AudioManager : MonoBehaviour
             musicSource.volume = musicVolume;
         }
     }
-    
+
     public void PauseMusic()
     {
         if (musicSource.isPlaying)
@@ -295,7 +296,7 @@ public class AudioManager : MonoBehaviour
             }
         }
     }
-    
+
     public void ResumeMusic()
     {
         if (!musicSource.isPlaying)
@@ -306,5 +307,23 @@ public class AudioManager : MonoBehaviour
                 secondaryMusicSource.UnPause();
             }
         }
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name == "GameScene") // Replace with your game scene name
+    {
+        PlayRandomMusic();
+    }
     }
 }
