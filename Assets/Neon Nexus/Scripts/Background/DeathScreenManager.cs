@@ -50,7 +50,6 @@ public class DeathScreenManager : MonoBehaviour
 
         // Setup button listeners
         submitNameButton.onClick.AddListener(SubmitName);
-        restartButton.onClick.AddListener(RestartGame);
     }
 
     private GameObject currentSelection;
@@ -275,10 +274,7 @@ public class DeathScreenManager : MonoBehaviour
         
         // Wait until next frame to set the button as selected
         StartCoroutine(SelectRestartButtonNextFrame());
-        
-        // Re-enable the restart button's onClick listener
-        restartButton.onClick.AddListener(RestartGame);
-        
+
         // Start the input cooldown to prevent immediate restart
         inputCooldownTimer = INPUT_COOLDOWN_DURATION;
     }
