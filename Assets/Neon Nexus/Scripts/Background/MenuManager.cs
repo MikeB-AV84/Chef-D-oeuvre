@@ -2,28 +2,40 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using System.Collections;
 
 public class MenuManager : MonoBehaviour
 {
     [Header("Buttons")]
     public Button playButton;
+    public Button scoreboardButton;  // New scoreboard button
     public Button quitButton;
     
     [Header("Controller Settings")]
     public float selectedScale = 1.2f;
     public float scaleSpeed = 5f;
     
+    [Header("Scoreboard")]
+    public GameObject scoreboardPanel;
+    public Button backButton;
+    
     private Button[] menuButtons;
     private Vector3[] originalScales;
     private Button currentlySelected;
+    private bool isScoreboardActive = false;
+
+    private bool isUpPressed = false;
+    private bool isDownPressed = false;
+    private bool isTransitioning = false;
+    private float transitionDelay = 0.3f;
 
     void Start()
     {
         // Initialize button arrays
-        menuButtons = new Button[] { playButton, quitButton };
+        menuButtons = new Button[] { playButton, scoreboardButton, quitButton, backButton };
         originalScales = new Vector3[menuButtons.Length];
         
-        // Store original scales and add listeners
+        // Store original scales
         for (int i = 0; i < menuButtons.Length; i++)
         {
             originalScales[i] = menuButtons[i].transform.localScale;
@@ -31,7 +43,12 @@ public class MenuManager : MonoBehaviour
         
         // Button listeners
         playButton.onClick.AddListener(StartGame);
+        scoreboardButton.onClick.AddListener(ToggleScoreboard);
         quitButton.onClick.AddListener(QuitGame);
+        backButton.onClick.AddListener(ToggleScoreboard);
+        
+        // Make sure scoreboard is initially hidden
+        scoreboardPanel.SetActive(false);
         
         // Auto-select first button for gamepad
         SetSelectedButton(playButton);
@@ -40,7 +57,8 @@ public class MenuManager : MonoBehaviour
     void Update()
     {
         // Handle keyboard shortcuts
-        if (Input.GetKeyDown(KeyCode.Space)) StartGame();
+        if (Input.GetKeyDown(KeyCode.Space) && !isScoreboardActive) StartGame();
+        if (Input.GetKeyDown(KeyCode.Escape) && isScoreboardActive) ToggleScoreboard();
         
         // Controller input for navigation
         HandleControllerInput();
@@ -49,35 +67,62 @@ public class MenuManager : MonoBehaviour
         UpdateButtonScaling();
     }
     
-    void HandleControllerInput()
+    private void HandleControllerInput()
+{
+    if (isTransitioning) return;
+
+    // Vertical navigation
+    float verticalInput = Input.GetAxisRaw("Vertical");
+    
+    if (verticalInput > 0.7f && !isUpPressed)
     {
-        // Vertical navigation (Up/Down)
-        if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetAxisRaw("Vertical") > 0.5f)
+        isUpPressed = true;
+        if (!isScoreboardActive)
         {
-            // Move selection up
-            if (currentlySelected == quitButton)
+            if (currentlySelected == scoreboardButton)
                 SetSelectedButton(playButton);
-        }
-        else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetAxisRaw("Vertical") < -0.5f)
-        {
-            // Move selection down
-            if (currentlySelected == playButton)
-                SetSelectedButton(quitButton);
-        }
-        
-        // Controller button press (A button is typically mapped to "Submit")
-        if (Input.GetKeyDown(KeyCode.JoystickButton0) || Input.GetButtonDown("Submit"))
-        {
-            if (currentlySelected != null)
-                currentlySelected.onClick.Invoke();
+            else if (currentlySelected == quitButton)
+                SetSelectedButton(scoreboardButton);
         }
     }
+    else if (verticalInput < -0.7f && !isDownPressed)
+    {
+        isDownPressed = true;
+        if (!isScoreboardActive)
+        {
+            if (currentlySelected == playButton)
+                SetSelectedButton(scoreboardButton);
+            else if (currentlySelected == scoreboardButton)
+                SetSelectedButton(quitButton);
+        }
+    }
+    else if (Mathf.Abs(verticalInput) < 0.5f)
+    {
+        isUpPressed = false;
+        isDownPressed = false;
+    }
     
+    // Submit handling
+    if ((Input.GetKeyDown(KeyCode.JoystickButton0) || Input.GetButtonDown("Submit")) && currentlySelected != null)
+    {
+        currentlySelected.onClick.Invoke();
+    }
+    
+    // Force back button selection when scoreboard is active
+    if (isScoreboardActive && currentlySelected != backButton)
+    {
+        SetSelectedButton(backButton);
+    }
+}
+
     void UpdateButtonScaling()
     {
         // Update scale of all buttons
         for (int i = 0; i < menuButtons.Length; i++)
         {
+            // Skip if button is null
+            if (menuButtons[i] == null) continue;
+            
             Vector3 targetScale = originalScales[i];
             
             // If this is the selected button, increase its scale
@@ -104,6 +149,48 @@ public class MenuManager : MonoBehaviour
     {
         SceneManager.LoadScene("GameScene");
     }
+    
+    public void ToggleScoreboard()
+{
+    if (isTransitioning) return;
+    
+    StartCoroutine(ToggleScoreboardRoutine());
+}
+
+private IEnumerator ToggleScoreboardRoutine()
+{
+    isTransitioning = true;
+    
+    // Toggle the state
+    isScoreboardActive = !isScoreboardActive;
+    
+    // Immediately update UI visibility
+    scoreboardPanel.SetActive(isScoreboardActive);
+    playButton.gameObject.SetActive(!isScoreboardActive);
+    scoreboardButton.gameObject.SetActive(!isScoreboardActive);
+    quitButton.gameObject.SetActive(!isScoreboardActive);
+    
+    // Force button selection
+    if (isScoreboardActive)
+    {
+        SetSelectedButton(backButton);
+        
+        // Refresh scoreboard if needed
+        ScoreboardUI scoreboardUI = GetComponentInChildren<ScoreboardUI>(true);
+        if (scoreboardUI != null)
+        {
+            scoreboardUI.UpdateScoreboard();
+        }
+    }
+    else
+    {
+        SetSelectedButton(scoreboardButton);
+    }
+    
+    // Wait a brief moment before allowing another toggle
+    yield return new WaitForSeconds(transitionDelay);
+    isTransitioning = false;
+}
 
     public void QuitGame()
     {
