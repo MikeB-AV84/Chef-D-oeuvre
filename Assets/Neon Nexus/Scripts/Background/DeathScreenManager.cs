@@ -50,79 +50,79 @@ public class DeathScreenManager : MonoBehaviour
     private bool joystickMoved = false;
 
     void Update()
+{
+    // Handle navigation in the name input panel
+    if (nameInputPanel.activeSelf)
     {
-        // Handle navigation in the name input panel
-        if (nameInputPanel.activeSelf)
+        HandleNameInputNavigation();
+    }
+    // Handle navigation in the death screen
+    else if (deathScreenActive && deathScreen.activeSelf)
+    {
+        // Only allow X button (JoystickButton2), Space, or Mouse click
+        if (Input.GetKeyDown(KeyCode.Space) || 
+            Input.GetKeyDown(KeyCode.JoystickButton2) || // X button only
+            (Input.GetMouseButtonDown(0) && EventSystem.current.currentSelectedGameObject == restartButton.gameObject))
         {
-            HandleNameInputNavigation();
-        }
-        // Handle navigation in the death screen
-        else if (deathScreenActive)
-        {
-            // Only allow X button (JoystickButton2), Space, or Mouse click
-            if (Input.GetKeyDown(KeyCode.Space) || 
-                Input.GetKeyDown(KeyCode.JoystickButton2) || // X button only
-                Input.GetMouseButtonDown(0))
-            {
-                RestartGame();
-            }
+            RestartGame();
         }
     }
+}
     
     void HandleNameInputNavigation()
+{
+    // Get vertical input for navigation
+    float verticalInput = Input.GetAxisRaw("Vertical");
+    
+    // Only register joystick movement when it crosses thresholds
+    bool joystickUp = verticalInput > 0.5f;
+    bool joystickDown = verticalInput < -0.5f;
+    
+    // Handle joystick/d-pad navigation
+    if ((joystickUp || Input.GetKeyDown(KeyCode.UpArrow)) && !joystickMoved)
     {
-        // Get vertical input for navigation
-        float verticalInput = Input.GetAxisRaw("Vertical");
-        
-        // Only register joystick movement when it crosses thresholds
-        bool joystickUp = verticalInput > 0.5f;
-        bool joystickDown = verticalInput < -0.5f;
-        
-        // Handle joystick/d-pad navigation
-        if ((joystickUp || Input.GetKeyDown(KeyCode.UpArrow)) && !joystickMoved)
+        // Move selection up
+        if (currentSelection == submitNameButton.gameObject)
         {
-            // Move selection up
-            if (currentSelection == submitNameButton.gameObject)
-            {
-                SetInputFieldSelected();
-            }
-            joystickMoved = true;
+            SetInputFieldSelected();
         }
-        else if ((joystickDown || Input.GetKeyDown(KeyCode.DownArrow)) && !joystickMoved)
+        joystickMoved = true;
+    }
+    else if ((joystickDown || Input.GetKeyDown(KeyCode.DownArrow)) && !joystickMoved)
+    {
+        // Move selection down
+        if (currentSelection == nameInputField.gameObject)
         {
-            // Move selection down
-            if (currentSelection == nameInputField.gameObject)
-            {
-                SetSubmitButtonSelected();
-            }
-            joystickMoved = true;
+            SetSubmitButtonSelected();
         }
-        else if (Mathf.Abs(verticalInput) < 0.2f)
-        {
-            // Reset joystick movement when returned to neutral position
-            joystickMoved = false;
-        }
-        
-        // Handle A button (Submit) press
-        if (Input.GetButtonDown("Submit"))
-        {
-            if (currentSelection == submitNameButton.gameObject)
-            {
-                SubmitName();
-            }
-            else if (currentSelection == nameInputField.gameObject)
-            {
-                // When pressing submit on the input field, submit the name
-                SubmitName();
-            }
-        }
-        
-        // Submit name with Enter key
-        if (Input.GetKeyDown(KeyCode.Return))
+        joystickMoved = true;
+    }
+    else if (Mathf.Abs(verticalInput) < 0.2f)
+    {
+        // Reset joystick movement when returned to neutral position
+        joystickMoved = false;
+    }
+    
+    // Handle A button (Submit) press - only in name input panel
+    if (nameInputPanel.activeSelf && Input.GetButtonDown("Submit"))
+    {
+        if (currentSelection == submitNameButton.gameObject)
         {
             SubmitName();
         }
+        else if (currentSelection == nameInputField.gameObject)
+        {
+            // When pressing submit on the input field, submit the name
+            SubmitName();
+        }
     }
+    
+    // Submit name with Enter key
+    if (Input.GetKeyDown(KeyCode.Return))
+    {
+        SubmitName();
+    }
+}
 
     public void ShowDeathScreen(int finalScore)
     {
@@ -161,23 +161,23 @@ public class DeathScreenManager : MonoBehaviour
     }
     
     private void ShowNameInput()
-    {
-        deathScreenActive = true;
-        
-        // Show the appropriate UI
-        deathScreen.SetActive(false);
-        nameInputPanel.SetActive(true);
-        
-        // Set the prompt text based on whether it's a high score
-        highScorePromptText.text = isHighScore ? defaultNamePrompt : regularScorePrompt;
-        
-        // Focus the input field
-        nameInputField.text = "Player";
-        SetInputFieldSelected();
-        
-        // IMPORTANT: Disable button's onClick to prevent it from being triggered by Submit/A button
-        restartButton.onClick.RemoveAllListeners();
-    }
+{
+    deathScreenActive = true;
+    
+    // Show the appropriate UI
+    deathScreen.SetActive(false);
+    nameInputPanel.SetActive(true);
+    
+    // Set the prompt text based on whether it's a high score
+    highScorePromptText.text = isHighScore ? defaultNamePrompt : regularScorePrompt;
+    
+    // Focus the input field
+    nameInputField.text = "Player";
+    SetInputFieldSelected();
+    
+    // IMPORTANT: Disable button's onClick to prevent it from being triggered by Submit/A button
+    restartButton.onClick.RemoveAllListeners();
+}
     
     private void SetInputFieldSelected()
     {
@@ -203,29 +203,32 @@ public class DeathScreenManager : MonoBehaviour
     }
     
     public void SubmitName()
+{
+    string playerName = nameInputField.text;
+    
+    // Make sure name isn't empty
+    if (string.IsNullOrWhiteSpace(playerName))
     {
-        string playerName = nameInputField.text;
-        
-        // Make sure name isn't empty
-        if (string.IsNullOrWhiteSpace(playerName))
-        {
-            playerName = "Player";
-        }
-        
-        // Save the score to the scoreboard
-        if (ScoreboardManager.Instance != null)
-        {
-            ScoreboardManager.Instance.AddHighScore(playerName, currentScore);
-        }
-        
-        // Show death screen after submitting name
-        nameInputPanel.SetActive(false);
-        deathScreen.SetActive(true);
-        
-        // Focus the restart button for controller navigation
-        EventSystem.current.SetSelectedGameObject(restartButton.gameObject);
-        currentSelection = restartButton.gameObject;
+        playerName = "Player";
     }
+    
+    // Save the score to the scoreboard
+    if (ScoreboardManager.Instance != null)
+    {
+        ScoreboardManager.Instance.AddHighScore(playerName, currentScore);
+    }
+    
+    // Show death screen after submitting name
+    nameInputPanel.SetActive(false);
+    deathScreen.SetActive(true);
+    
+    // Focus the restart button for controller navigation
+    EventSystem.current.SetSelectedGameObject(restartButton.gameObject);
+    currentSelection = restartButton.gameObject;
+    
+    // Re-enable the restart button's onClick listener
+    restartButton.onClick.AddListener(RestartGame);
+}
 
     public void RestartGame()
     {
@@ -245,7 +248,6 @@ public class DeathScreenManager : MonoBehaviour
             gameManager.SetPlayerDead(false);
         }
         
-        AudioManager.Instance?.PlayRandomMusic();
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }
