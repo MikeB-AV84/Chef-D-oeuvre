@@ -32,7 +32,7 @@ public class DeathScreenManager : MonoBehaviour
     // Add this to the class fields at the top
     // Add a cooldown timer to prevent input bleed-through
     private float inputCooldownTimer = 0f;
-    private const float INPUT_COOLDOWN_DURATION = 0.5f; // Half-second cooldown
+    private const float INPUT_COOLDOWN_DURATION = 1.5f; // Half-second cooldown
     private bool hasSubmittedName = false;
 
     void Awake()
@@ -102,7 +102,7 @@ public class DeathScreenManager : MonoBehaviour
     void HandleNameInputNavigation()
     {
         // Skip input handling during cooldown
-        if (inputCooldownTimer > 0)
+        if (inputCooldownTimer > 0 )
         {
             return;
         }
