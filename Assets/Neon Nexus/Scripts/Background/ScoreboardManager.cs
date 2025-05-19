@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using System.IO;
 
 [System.Serializable]
 public class HighScoreEntry
@@ -29,7 +30,7 @@ public class ScoreboardManager : MonoBehaviour
     public int maxHighScores = 5;
 
     private HighScoreData scoreData;
-    private string saveKey = "HighScores";
+    private string saveFileName = "highscores.json";
 
     void Awake()
     {
@@ -46,12 +47,24 @@ public class ScoreboardManager : MonoBehaviour
         }
     }
 
+    private string GetSavePath()
+    {
+        return Path.Combine(Application.persistentDataPath, saveFileName);
+    }
+
     public void LoadHighScores()
     {
-        if (PlayerPrefs.HasKey(saveKey))
+        string filePath = GetSavePath();
+        
+        if (File.Exists(filePath))
         {
-            string json = PlayerPrefs.GetString(saveKey);
+            string json = File.ReadAllText(filePath);
             scoreData = JsonUtility.FromJson<HighScoreData>(json);
+            
+            // Ensure the list is properly sorted after loading
+            scoreData.highScores = scoreData.highScores
+                .OrderByDescending(x => x.score)
+                .ToList();
         }
         else
         {
@@ -64,13 +77,17 @@ public class ScoreboardManager : MonoBehaviour
 
     public void SaveHighScores()
     {
+        string filePath = GetSavePath();
         string json = JsonUtility.ToJson(scoreData);
-        PlayerPrefs.SetString(saveKey, json);
-        PlayerPrefs.Save();
+        File.WriteAllText(filePath, json);
     }
 
     public bool AddHighScore(string playerName, int score)
     {
+        // Check if score qualifies for the high score list
+        if (!IsHighScore(score))
+            return false;
+
         // Create new entry
         HighScoreEntry newEntry = new HighScoreEntry(playerName, score);
         
@@ -88,7 +105,7 @@ public class ScoreboardManager : MonoBehaviour
             scoreData.highScores.RemoveRange(maxHighScores, scoreData.highScores.Count - maxHighScores);
         }
         
-        // Save to PlayerPrefs
+        // Save to JSON file
         SaveHighScores();
         
         // Return true if score made it to the high score list
@@ -108,5 +125,18 @@ public class ScoreboardManager : MonoBehaviour
             
         // Otherwise, check if the score is higher than the lowest score
         return score > scoreData.highScores.Min(x => x.score);
+    }
+
+    // Helper method to clear high scores (for testing)
+    public void ClearHighScores()
+    {
+        scoreData.highScores.Clear();
+        SaveHighScores();
+    }
+
+    // Helper method to get the save file path (for debugging)
+    public string GetHighScoreFilePath()
+    {
+        return GetSavePath();
     }
 }
