@@ -146,7 +146,8 @@ public class PlayerController : MonoBehaviour
     {
         if (boostText != null)
         {
-            boostText.text = $"BOOST: {Mathf.RoundToInt(currentBoost)}/{maxBoost}";
+            boostText.text = $"{Mathf.RoundToInt(currentBoost)}%";
+            //boostText.text = $"BOOST: {Mathf.RoundToInt(currentBoost)}/{maxBoost}";
         }
     }
 
