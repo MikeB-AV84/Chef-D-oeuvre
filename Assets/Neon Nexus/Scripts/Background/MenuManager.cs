@@ -6,6 +6,9 @@ using System.Collections;
 
 public class MenuManager : MonoBehaviour
 {
+     [Header("Menu Music")]
+    public AudioClip menuMusic;
+
     [Header("Buttons")]
     public Button playButton;
     public Button scoreboardButton;  // New scoreboard button
@@ -28,6 +31,19 @@ public class MenuManager : MonoBehaviour
     private bool isDownPressed = false;
     private bool isTransitioning = false;
     private float transitionDelay = 0.3f;
+    private AudioSource audioSource;
+
+    void Awake()
+    {
+        // Add this code to play your menu music
+        if (menuMusic != null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.clip = menuMusic;
+            audioSource.loop = true;
+            audioSource.Play();
+        }
+    }
 
     void Start()
     {
