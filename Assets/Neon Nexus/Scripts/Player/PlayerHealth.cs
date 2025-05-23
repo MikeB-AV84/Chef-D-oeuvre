@@ -7,9 +7,11 @@ public class PlayerHealth : MonoBehaviour
     public int playerLives = 5;
     public int maxLives = 5;
     public TextMeshProUGUI livesText;
+    private HyperDash hyperDash;
 
     void Start()
     {
+        hyperDash = GetComponent<HyperDash>();
         UpdateLivesText();
     }
 
@@ -20,6 +22,7 @@ public class PlayerHealth : MonoBehaviour
 
     public void TakeDamage(int damage)
     {
+        if (hyperDash != null && hyperDash.isDashing) return;
         playerLives = Mathf.Max(0, playerLives - damage);
         Debug.Log("Vies restantes : " + playerLives);
         UpdateLivesText();

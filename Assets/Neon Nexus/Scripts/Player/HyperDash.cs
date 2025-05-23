@@ -20,8 +20,10 @@ public class HyperDash : MonoBehaviour
     
     [Header("Audio")]
     [SerializeField] private AudioClip dashSound;
+
+    [Header("Debug")]
     
-    private bool isDashing = false;
+    public bool isDashing = false;
     private bool canDash = true;
     private Vector2 dashDirection;
     private Vector2 startPosition;

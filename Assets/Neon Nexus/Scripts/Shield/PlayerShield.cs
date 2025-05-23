@@ -7,9 +7,11 @@ public class PlayerShield : MonoBehaviour
     private int hitsRemaining;
     private const int MAX_SHIELD_HITS = 3;
     private DamageBlinker damageBlinker; // Reference to blinker
+    private HyperDash hyperDash;
 
     void Start()
     {
+        hyperDash = GetComponent<HyperDash>();
         damageBlinker = GetComponent<DamageBlinker>(); // Get the blinker component
     }
 
@@ -24,6 +26,8 @@ public class PlayerShield : MonoBehaviour
 
     public bool AbsorbDamage()
     {
+        if (hyperDash != null && hyperDash.isDashing) return true;
+        
         if (!HasShield()) return false;
         
         hitsRemaining--;

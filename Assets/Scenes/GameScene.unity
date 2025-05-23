@@ -14075,7 +14075,7 @@ MonoBehaviour:
   dashSpeed: 200
   dashDistance: 30
   dashDuration: 0.5
-  dashCooldown: 1
+  dashCooldown: 0
   glowColor: {r: 0.50980395, g: 0.972549, b: 0.88235295, a: 0.8}
   glowIntensity: 10
   trailPrefab: {fileID: 0}
@@ -14084,6 +14084,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   dashSound: {fileID: 0}
+  isDashing: 0
 --- !u!1 &1866464099
 GameObject:
   m_ObjectHideFlags: 0
