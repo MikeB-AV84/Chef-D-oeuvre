@@ -2,6 +2,13 @@ fileFormatVersion: 2
 guid: 92b3d65b1f018c2478821555c91745e5
 labels:
 - Particles
+AssetOrigin:
+  serializedVersion: 1
+  productId: 27662
+  packageName: 2D Space Kit
+  packageVersion: Initial 2
+  assetPath: Assets/2D Space Kit/Particles (Sprites)/IonTrail.png
+  uploadId: 46238
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -130,10 +137,3 @@ TextureImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 27662
-  packageName: 2D Space Kit
-  packageVersion: Initial 2
-  assetPath: Assets/2D Space Kit/Particles (Sprites)/IonTrail.png
-  uploadId: 46238
