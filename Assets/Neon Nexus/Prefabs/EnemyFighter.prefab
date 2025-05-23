@@ -180,8 +180,8 @@ MonoBehaviour:
   pointsValue: 10
   shieldPickupPrefab: {fileID: 5138960977784813881, guid: 0d99e6cdb1dec184f851834de6a1c47c, type: 3}
   heartPickupPrefab: {fileID: 6840657895234986194, guid: da3d09542b1c4fa40b5b82069615736e, type: 3}
-  shieldDropChance: 1
-  heartDropChance: 1
+  dropChance: 0.15
+  shieldChance: 0.5
 --- !u!114 &3530805572002075375
 MonoBehaviour:
   m_ObjectHideFlags: 0
