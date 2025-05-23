@@ -13664,6 +13664,8 @@ MonoBehaviour:
   highScorePromptText: {fileID: 2117288896}
   defaultNamePrompt: 'NEW HIGH SCORE! ENTER YOUR NAME:'
   regularScorePrompt: 'GAME OVER! ENTER YOUR NAME:'
+  selectedScale: 1.2
+  scaleSpeed: 5
   gameManager: {fileID: 191082411}
 --- !u!1 &1747228204
 GameObject:
@@ -14078,7 +14080,7 @@ MonoBehaviour:
   dashCooldown: 0
   glowColor: {r: 0.50980395, g: 0.972549, b: 0.88235295, a: 0.8}
   glowIntensity: 10
-  trailPrefab: {fileID: 0}
+  trailPrefab: {fileID: 4790760966470639963, guid: fc84f7b6f92ad834ea56fe8366c63b3a, type: 3}
   enemyHitPoints: 50
   enemyLayerMask:
     serializedVersion: 2
