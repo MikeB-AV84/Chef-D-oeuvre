@@ -20,7 +20,7 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    private void DestroyEnemy()
+    public void DestroyEnemy()
 {
     /*float dropRoll = Random.value;
     
