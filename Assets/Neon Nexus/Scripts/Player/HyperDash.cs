@@ -98,7 +98,7 @@ public class HyperDash : MonoBehaviour
         if (inputDirection == Vector2.zero)
         {
             // If no input, dash in the direction the player is facing
-            inputDirection = transform.right; // Adjust based on your player's forward direction
+            inputDirection = transform.up; // Adjust based on your player's forward direction
         }
         
         dashDirection = inputDirection.normalized;
