@@ -22,9 +22,14 @@ public class DeathScreenManager : MonoBehaviour
     public string defaultNamePrompt = "NEW HIGH SCORE! ENTER YOUR NAME:";
     public string regularScorePrompt = "GAME OVER! ENTER YOUR NAME:";
 
+    [Header("Controller Settings")]
+    public float selectedScale = 1.2f;
+    public float scaleSpeed = 5f;
+
     private bool deathScreenActive = false;
     private int currentScore = 0;
     private bool isHighScore = false;
+    private GameObject hoveredElement; // Track which element is being hovered
     
     [Header("References")]
     public GameManager gameManager;  // Reference to the GameManager
@@ -34,6 +39,11 @@ public class DeathScreenManager : MonoBehaviour
     private float inputCooldownTimer = 0f;
     private const float INPUT_COOLDOWN_DURATION = 1.5f; // Half-second cooldown
     private bool hasSubmittedName = false;
+
+    // Store original scales
+    private Vector3 originalRestartButtonScale;
+    private Vector3 originalSubmitButtonScale;
+    private Vector3 originalInputFieldScale;
 
     void Awake()
     {
@@ -50,6 +60,80 @@ public class DeathScreenManager : MonoBehaviour
 
         // Setup button listeners
         submitNameButton.onClick.AddListener(SubmitName);
+        
+        // Store original scales
+        originalRestartButtonScale = restartButton.transform.localScale;
+        originalSubmitButtonScale = submitNameButton.transform.localScale;
+        originalInputFieldScale = nameInputField.transform.localScale;
+        
+        // Add mouse hover events
+        AddMouseHoverEvents();
+    }
+
+    void AddMouseHoverEvents()
+    {
+        // Add hover events for restart button
+        AddHoverEvent(restartButton.gameObject, true);
+        
+        // Add hover events for submit button
+        AddHoverEvent(submitNameButton.gameObject, true);
+        
+        // Add hover events for input field
+        AddHoverEvent(nameInputField.gameObject, false);
+    }
+    
+    void AddHoverEvent(GameObject element, bool isButton)
+    {
+        // Get or add EventTrigger component
+        EventTrigger eventTrigger = element.GetComponent<EventTrigger>();
+        if (eventTrigger == null)
+        {
+            eventTrigger = element.AddComponent<EventTrigger>();
+        }
+        
+        // Create mouse enter event
+        EventTrigger.Entry enterEvent = new EventTrigger.Entry();
+        enterEvent.eventID = EventTriggerType.PointerEnter;
+        enterEvent.callback.AddListener((eventData) => OnMouseEnter(element, isButton));
+        eventTrigger.triggers.Add(enterEvent);
+        
+        // Create mouse exit event
+        EventTrigger.Entry exitEvent = new EventTrigger.Entry();
+        exitEvent.eventID = EventTriggerType.PointerExit;
+        exitEvent.callback.AddListener((eventData) => OnMouseExit(element));
+        eventTrigger.triggers.Add(exitEvent);
+    }
+    
+    void OnMouseEnter(GameObject element, bool isButton)
+    {
+        // Only respond if the element is currently active
+        if (element.activeInHierarchy)
+        {
+            hoveredElement = element;
+            
+            if (isButton)
+            {
+                Button button = element.GetComponent<Button>();
+                if (button != null)
+                {
+                    SetSelectedElement(element);
+                }
+            }
+            else
+            {
+                // For input field
+                SetSelectedElement(element);
+            }
+        }
+    }
+    
+    void OnMouseExit(GameObject element)
+    {
+        // Clear hovered element when mouse leaves
+        if (hoveredElement == element)
+        {
+            hoveredElement = null;
+        }
     }
 
     private GameObject currentSelection;
@@ -62,6 +146,9 @@ public class DeathScreenManager : MonoBehaviour
         {
             inputCooldownTimer -= Time.unscaledDeltaTime;
         }
+
+        // Update scaling for all elements
+        UpdateElementScaling();
 
         // Handle navigation in the name input panel
         if (nameInputPanel.activeSelf)
@@ -98,6 +185,51 @@ public class DeathScreenManager : MonoBehaviour
         }
     }
     
+    void UpdateElementScaling()
+    {
+        // Update restart button scaling
+        if (restartButton != null)
+        {
+            Vector3 targetScale = originalRestartButtonScale;
+            if (restartButton.gameObject == currentSelection)
+            {
+                targetScale *= selectedScale;
+            }
+            restartButton.transform.localScale = Vector3.Lerp(
+                restartButton.transform.localScale, 
+                targetScale, 
+                Time.unscaledDeltaTime * scaleSpeed);
+        }
+        
+        // Update submit button scaling
+        if (submitNameButton != null)
+        {
+            Vector3 targetScale = originalSubmitButtonScale;
+            if (submitNameButton.gameObject == currentSelection)
+            {
+                targetScale *= selectedScale;
+            }
+            submitNameButton.transform.localScale = Vector3.Lerp(
+                submitNameButton.transform.localScale, 
+                targetScale, 
+                Time.unscaledDeltaTime * scaleSpeed);
+        }
+        
+        // Update input field scaling
+        if (nameInputField != null)
+        {
+            Vector3 targetScale = originalInputFieldScale;
+            if (nameInputField.gameObject == currentSelection)
+            {
+                targetScale *= selectedScale;
+            }
+            nameInputField.transform.localScale = Vector3.Lerp(
+                nameInputField.transform.localScale, 
+                targetScale, 
+                Time.unscaledDeltaTime * scaleSpeed);
+        }
+    }
+    
     void HandleNameInputNavigation()
     {
         // Skip input handling during cooldown
@@ -116,6 +248,7 @@ public class DeathScreenManager : MonoBehaviour
         // Handle joystick/d-pad navigation
         if ((joystickUp || Input.GetKeyDown(KeyCode.UpArrow)) && !joystickMoved)
         {
+            hoveredElement = null; // Clear mouse hover when using controller
             // Move selection up
             if (currentSelection == submitNameButton.gameObject)
             {
@@ -125,6 +258,7 @@ public class DeathScreenManager : MonoBehaviour
         }
         else if ((joystickDown || Input.GetKeyDown(KeyCode.DownArrow)) && !joystickMoved)
         {
+            hoveredElement = null; // Clear mouse hover when using controller
             // Move selection down
             if (currentSelection == nameInputField.gameObject)
             {
@@ -161,6 +295,25 @@ public class DeathScreenManager : MonoBehaviour
         {
             Input.ResetInputAxes();
             SubmitName();
+        }
+    }
+
+    void SetSelectedElement(GameObject element)
+    {
+        currentSelection = element;
+        
+        if (element == restartButton.gameObject)
+        {
+            restartButton.Select();
+        }
+        else if (element == submitNameButton.gameObject)
+        {
+            submitNameButton.Select();
+        }
+        else if (element == nameInputField.gameObject)
+        {
+            nameInputField.Select();
+            nameInputField.ActivateInputField();
         }
     }
 
@@ -222,24 +375,13 @@ public class DeathScreenManager : MonoBehaviour
     private void SetInputFieldSelected()
     {
         // Set the input field as the current selection
-        currentSelection = nameInputField.gameObject;
-        nameInputField.Select();
-        nameInputField.ActivateInputField();
-        
-        // Visual feedback
-        nameInputField.transform.localScale = Vector3.one * 1.1f;
-        submitNameButton.transform.localScale = Vector3.one;
+        SetSelectedElement(nameInputField.gameObject);
     }
     
     private void SetSubmitButtonSelected()
     {
         // Set the submit button as the current selection
-        currentSelection = submitNameButton.gameObject;
-        submitNameButton.Select();
-        
-        // Visual feedback
-        submitNameButton.transform.localScale = Vector3.one * 1.1f;
-        nameInputField.transform.localScale = Vector3.one;
+        SetSelectedElement(submitNameButton.gameObject);
     }
     
     public void SubmitName()
@@ -286,7 +428,7 @@ public class DeathScreenManager : MonoBehaviour
         yield return null;
         
         // Now it's safe to select the restart button
-        currentSelection = restartButton.gameObject;
+        SetSelectedElement(restartButton.gameObject);
         EventSystem.current.SetSelectedGameObject(restartButton.gameObject);
     }
 

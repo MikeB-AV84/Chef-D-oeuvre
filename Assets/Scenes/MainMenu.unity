@@ -263,6 +263,9 @@ MonoBehaviour:
   firstPlaceColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   secondPlaceColor: {r: 0.75, g: 0.75, b: 0.75, a: 1}
   thirdPlaceColor: {r: 0.8, g: 0.5, b: 0.2, a: 1}
+  backButton: {fileID: 448378872}
+  selectedScale: 1.2
+  scaleSpeed: 5
 --- !u!1 &68193906
 GameObject:
   m_ObjectHideFlags: 0

@@ -18,6 +18,7 @@ public class PauseMenuUI : MonoBehaviour
     private Button[] menuButtons;
     private Vector3[] originalScales;
     private Button currentlySelected;
+    private Button hoveredButton; // Track which button is being hovered
     private float lastVerticalInput = 0f;
     private float inputDelay = 0.2f;
     private float lastInputTime = 0f;
@@ -52,10 +53,61 @@ public class PauseMenuUI : MonoBehaviour
         resumeButton.onClick.AddListener(Resume);
         mainMenuButton.onClick.AddListener(ReturnToMainMenu);
         
+        // Add mouse hover event triggers to all buttons
+        AddMouseHoverEvents();
+        
         // If game manager not assigned, try to find it
         if (gameManager == null)
         {
             gameManager = FindObjectOfType<GameManager>();
+        }
+    }
+
+    void AddMouseHoverEvents()
+    {
+        // Add hover events for each button
+        AddHoverEvent(resumeButton);
+        AddHoverEvent(mainMenuButton);
+    }
+    
+    void AddHoverEvent(Button button)
+    {
+        // Get or add EventTrigger component
+        EventTrigger eventTrigger = button.GetComponent<EventTrigger>();
+        if (eventTrigger == null)
+        {
+            eventTrigger = button.gameObject.AddComponent<EventTrigger>();
+        }
+        
+        // Create mouse enter event
+        EventTrigger.Entry enterEvent = new EventTrigger.Entry();
+        enterEvent.eventID = EventTriggerType.PointerEnter;
+        enterEvent.callback.AddListener((eventData) => OnMouseEnter(button));
+        eventTrigger.triggers.Add(enterEvent);
+        
+        // Create mouse exit event
+        EventTrigger.Entry exitEvent = new EventTrigger.Entry();
+        exitEvent.eventID = EventTriggerType.PointerExit;
+        exitEvent.callback.AddListener((eventData) => OnMouseExit(button));
+        eventTrigger.triggers.Add(exitEvent);
+    }
+    
+    void OnMouseEnter(Button button)
+    {
+        // Only respond if the button is currently active
+        if (button.gameObject.activeInHierarchy)
+        {
+            hoveredButton = button;
+            SetSelectedButton(button);
+        }
+    }
+    
+    void OnMouseExit(Button button)
+    {
+        // Clear hovered button when mouse leaves
+        if (hoveredButton == button)
+        {
+            hoveredButton = null;
         }
     }
 
@@ -86,6 +138,7 @@ public class PauseMenuUI : MonoBehaviour
             // Vertical navigation (Up/Down)
             if (verticalInput > 0.5f && lastVerticalInput <= 0.5f)
             {
+                hoveredButton = null; // Clear mouse hover when using controller
                 // Move selection up
                 if (currentlySelected == mainMenuButton)
                 {
@@ -95,6 +148,7 @@ public class PauseMenuUI : MonoBehaviour
             }
             else if (verticalInput < -0.5f && lastVerticalInput >= -0.5f)
             {
+                hoveredButton = null; // Clear mouse hover when using controller
                 // Move selection down
                 if (currentlySelected == resumeButton)
                 {
@@ -119,11 +173,13 @@ public class PauseMenuUI : MonoBehaviour
         // Keyboard shortcuts for menu navigation
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
+            hoveredButton = null; // Clear mouse hover when using keyboard
             if (currentlySelected == mainMenuButton)
                 SetSelectedButton(resumeButton);
         }
         else if (Input.GetKeyDown(KeyCode.DownArrow))
         {
+            hoveredButton = null; // Clear mouse hover when using keyboard
             if (currentlySelected == resumeButton)
                 SetSelectedButton(mainMenuButton);
         }
@@ -145,7 +201,7 @@ public class PauseMenuUI : MonoBehaviour
             {
                 Vector3 targetScale = originalScales[i];
                 
-                // If this is the selected button, increase its scale
+                // If this is the selected button (either by controller or mouse), increase its scale
                 if (menuButtons[i] == currentlySelected)
                 {
                     targetScale *= selectedScale;
