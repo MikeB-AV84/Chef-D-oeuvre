@@ -25,6 +25,7 @@ public class AudioManager : MonoBehaviour
     private Coroutine musicRoutine;
     private bool isSkipping = false;
     private bool isPaused = false;
+    private bool isMusicPaused = false; // NEW: Track if music is paused by GameManager
     private float lastClickTime = 0f;
     private int clickCount = 0;
     private Coroutine clickResetCoroutine;
@@ -103,6 +104,12 @@ public class AudioManager : MonoBehaviour
             float timer = 0f;
             while (timer < fadeInDuration)
             {
+                // FIXED: Check if music is paused before continuing
+                while (isMusicPaused)
+                {
+                    yield return null;
+                }
+                
                 musicSource.volume = Mathf.Lerp(0f, musicVolume, timer / fadeInDuration);
                 timer += Time.unscaledDeltaTime;
                 yield return null;
@@ -114,7 +121,17 @@ public class AudioManager : MonoBehaviour
 
             while (elapsed < remainingTime && !isSkipping)
             {
-                elapsed += Time.unscaledDeltaTime;
+                // FIXED: Check if music is paused before continuing
+                while (isMusicPaused && !isSkipping)
+                {
+                    yield return null;
+                }
+                
+                // Only increment elapsed time if not paused
+                if (!isMusicPaused)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                }
                 yield return null;
             }
 
@@ -124,6 +141,12 @@ public class AudioManager : MonoBehaviour
                 timer = 0f;
                 while (timer < skipFadeDuration)
                 {
+                    // FIXED: Check if music is paused before continuing
+                    while (isMusicPaused)
+                    {
+                        yield return null;
+                    }
+                    
                     musicSource.volume = Mathf.Lerp(startVolume, 0f, timer / skipFadeDuration);
                     timer += Time.unscaledDeltaTime;
                     yield return null;
@@ -287,6 +310,8 @@ public class AudioManager : MonoBehaviour
 
     public void PauseMusic()
     {
+        isMusicPaused = true; // FIXED: Set the flag first
+        
         if (musicSource.isPlaying)
         {
             musicSource.Pause();
@@ -299,6 +324,8 @@ public class AudioManager : MonoBehaviour
 
     public void ResumeMusic()
     {
+        isMusicPaused = false; // FIXED: Clear the flag first
+        
         if (!musicSource.isPlaying)
         {
             musicSource.UnPause();
@@ -322,8 +349,8 @@ public class AudioManager : MonoBehaviour
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         if (scene.name == "GameScene") // Replace with your game scene name
-    {
-        PlayRandomMusic();
-    }
+        {
+            PlayRandomMusic();
+        }
     }
 }
