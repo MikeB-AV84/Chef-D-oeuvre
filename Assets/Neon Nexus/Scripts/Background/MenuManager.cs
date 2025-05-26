@@ -30,6 +30,11 @@ public class MenuManager : MonoBehaviour
     private bool isTransitioning = false;
     private float transitionDelay = 0.3f;
 
+    [Header("Loading Screen")]
+    public GameObject loadingScreen;
+    public Image loadingImage;
+    public float loadingTime = 3f;
+
     void Start()
     {
         // Initialize button arrays
@@ -203,6 +208,20 @@ public class MenuManager : MonoBehaviour
 
     public void StartGame()
     {
+        StartCoroutine(ShowLoadingScreen());
+    }
+
+    private IEnumerator ShowLoadingScreen()
+    {
+        // Show loading screen
+        loadingScreen.SetActive(true);
+    
+        
+    
+        // Wait for the remaining loading time
+        yield return new WaitForSeconds(loadingTime);
+        
+        // Load game scene
         SceneManager.LoadScene("GameScene");
     }
     
