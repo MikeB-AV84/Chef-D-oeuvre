@@ -621,9 +621,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyPrefab: {fileID: 9204258638262578817, guid: 96888f3bc1b63b744b583140c845199f, type: 3}
-  spawnInterval: 3
-  maxEnemiesOnScreen: 20
-  player: {fileID: 0}
+  baseSpawnInterval: 2
+  minSpawnInterval: 0.5
+  baseMaxEnemies: 5
+  maxPossibleEnemies: 80
+  baseEnemySpeed: 2
+  maxEnemySpeed: 6
+  scorePerDifficultyIncrease: 100
+  spawnRateIncrease: 0.15
+  speedIncrease: 0.3
+  enemyCountIncrease: 2
   minSpawnDistance: 15
   maxSpawnDistance: 25
 --- !u!4 &131378019
@@ -7526,8 +7533,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -802, y: 465}
-  m_SizeDelta: {x: 300, y: 50}
+  m_AnchoredPosition: {x: -706.4805, y: 465}
+  m_SizeDelta: {x: 491.039, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1075552190
 MonoBehaviour:
@@ -7741,8 +7748,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -800, y: 514}
-  m_SizeDelta: {x: 300, y: 50}
+  m_AnchoredPosition: {x: -705.48047, y: 514}
+  m_SizeDelta: {x: 489.04, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1157876714
 MonoBehaviour:
