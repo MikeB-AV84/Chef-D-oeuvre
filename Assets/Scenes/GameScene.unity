@@ -621,9 +621,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyPrefab: {fileID: 9204258638262578817, guid: 96888f3bc1b63b744b583140c845199f, type: 3}
-  spawnInterval: 1.5
+  spawnInterval: 3
   maxEnemiesOnScreen: 20
-  player: {fileID: 1777141539}
+  player: {fileID: 0}
   minSpawnDistance: 15
   maxSpawnDistance: 25
 --- !u!4 &131378019
@@ -14239,7 +14239,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1952809467
 MonoBehaviour:
   m_ObjectHideFlags: 0

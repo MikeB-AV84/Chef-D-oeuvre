@@ -195,6 +195,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 2
+  desiredDistance: 5
 --- !u!114 &8886413844850613325
 MonoBehaviour:
   m_ObjectHideFlags: 0

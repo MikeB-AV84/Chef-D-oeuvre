@@ -2,19 +2,42 @@ using UnityEngine;
 
 public class EnemySpawner : MonoBehaviour
 {
-    public GameObject enemyPrefab; // Prefab de l'ennemi à instancier
-    public float spawnInterval = 3f; // Temps entre chaque spawn d'ennemi
-    public int maxEnemiesOnScreen = 20; // Nombre maximum d'ennemis simultanés
+    [Header("Enemy Settings")]
+    public GameObject enemyPrefab;
     
-    public Transform player; // Référence au joueur
-    public float minSpawnDistance = 10f; // Distance min pour éviter le spawn trop proche
-    public float maxSpawnDistance = 20f; // Distance max autour du joueur
-
-    private float timer; // Timer pour suivre le temps écoulé entre chaque spawn
+    [Header("Base Difficulty Settings")]
+    public float baseSpawnInterval = 2f; // Starting spawn interval
+    public float minSpawnInterval = 0.5f; // Fastest possible spawn rate
+    public int baseMaxEnemies = 5; // Starting max enemies on screen
+    public int maxPossibleEnemies = 80; // Maximum enemies allowed on screen
+    
+    [Header("Speed Scaling")]
+    public float baseEnemySpeed = 2f; // Starting enemy speed
+    public float maxEnemySpeed = 6f; // Maximum enemy speed
+    
+    [Header("Difficulty Progression")]
+    public int scorePerDifficultyIncrease = 100; // Score needed for each difficulty bump
+    public float spawnRateIncrease = 0.15f; // How much faster spawning gets per level
+    public float speedIncrease = 0.3f; // How much faster enemies get per level
+    public int enemyCountIncrease = 2; // How many more enemies per difficulty level
+    
+    [Header("Spawn Distance")]
+    public float minSpawnDistance = 10f;
+    public float maxSpawnDistance = 20f;
+    
+    private Transform player;
+    private float timer;
+    private int currentDifficultyLevel = 0;
+    private int lastScoreCheck = 0;
+    
+    // Current difficulty values
+    private float currentSpawnInterval;
+    private int currentMaxEnemies;
+    private float currentEnemySpeed;
 
     void Start()
     {
-        // Si le joueur n'est pas assigné manuellement, on le trouve par tag
+        // Find player
         if (player == null)
         {
             GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
@@ -24,12 +47,16 @@ public class EnemySpawner : MonoBehaviour
             }
             else
             {
-                Debug.LogError("Aucun joueur trouvé avec le tag 'Player'");
+                Debug.LogError("No player found with tag 'Player'");
+                return;
             }
         }
         
-        // Génère quelques ennemis initiaux
-        for (int i = 0; i < 5; i++)
+        // Initialize difficulty values
+        UpdateDifficulty();
+        
+        // Spawn initial enemies (fewer at start)
+        for (int i = 0; i < 3; i++)
         {
             SpawnEnemy();
         }
@@ -39,58 +66,133 @@ public class EnemySpawner : MonoBehaviour
     {
         if (player == null) return;
         
+        // Check if difficulty should increase based on score
+        CheckDifficultyIncrease();
+        
         timer += Time.deltaTime;
 
-        // Vérifie si le temps écoulé dépasse l'intervalle de spawn
-        if (timer >= spawnInterval)
+        if (timer >= currentSpawnInterval)
         {
-            // Compte le nombre actuel d'ennemis
             GameObject[] existingEnemies = GameObject.FindGameObjectsWithTag("Enemy");
             
-            // Ne spawne que si on n'a pas atteint le nombre max d'ennemis
-            if (existingEnemies.Length < maxEnemiesOnScreen)
+            // Debug info to help diagnose spawning issues
+            if (existingEnemies.Length >= currentMaxEnemies)
             {
-                SpawnEnemy();
+                Debug.Log($"Max enemies reached: {existingEnemies.Length}/{currentMaxEnemies}");
             }
             
-            timer = 0f; // Remise à zéro du timer
+            if (existingEnemies.Length < currentMaxEnemies)
+            {
+                SpawnEnemy();
+                Debug.Log($"Spawned enemy. Current count: {existingEnemies.Length + 1}/{currentMaxEnemies}");
+            }
+            
+            // Always reset timer, regardless of whether we spawned
+            timer = 0f;
         }
+    }
+    
+    void CheckDifficultyIncrease()
+    {
+        if (ScoreManager.Instance == null) 
+        {
+            Debug.LogWarning("ScoreManager.Instance is null!");
+            return;
+        }
+        
+        int currentScore = ScoreManager.Instance.score;
+        int newDifficultyLevel = currentScore / scorePerDifficultyIncrease;
+        
+        if (newDifficultyLevel > currentDifficultyLevel)
+        {
+            currentDifficultyLevel = newDifficultyLevel;
+            UpdateDifficulty();
+            
+            Debug.Log($"Difficulty increased to level {currentDifficultyLevel}!");
+            Debug.Log($"Spawn interval: {currentSpawnInterval:F2}s, Max enemies: {currentMaxEnemies}, Enemy speed: {currentEnemySpeed:F2}");
+        }
+    }
+    
+    void UpdateDifficulty()
+    {
+        // Calculate spawn rate (gets faster with difficulty)
+        currentSpawnInterval = Mathf.Max(
+            minSpawnInterval, 
+            baseSpawnInterval - (currentDifficultyLevel * spawnRateIncrease)
+        );
+        
+        // Calculate max enemies (DOUBLES each difficulty level)
+        currentMaxEnemies = Mathf.Min(
+            maxPossibleEnemies,
+            baseMaxEnemies + (currentDifficultyLevel * enemyCountIncrease)
+        );
+        
+        // Calculate enemy speed (gets faster with difficulty)
+        currentEnemySpeed = Mathf.Min(
+            maxEnemySpeed,
+            baseEnemySpeed + (currentDifficultyLevel * speedIncrease)
+        );
     }
 
     void SpawnEnemy()
     {
         if (player == null) return;
         
-        Vector2 spawnPos;
-        float distance;
-
-        // Trouve une position qui respecte minSpawnDistance et maxSpawnDistance
-        do
-        {
-            // Angle aléatoire
-            float angle = Random.Range(0f, Mathf.PI * 2);
-            // Distance aléatoire entre min et max
-            float spawnDistance = Random.Range(minSpawnDistance, maxSpawnDistance);
-            
-            // Calcul des coordonnées
-            float x = Mathf.Cos(angle) * spawnDistance;
-            float y = Mathf.Sin(angle) * spawnDistance;
-            
-            // Position finale relative au joueur
-            spawnPos = new Vector2(player.position.x + x, player.position.y + y);
-            
-            // Calcul de la distance réelle
-            distance = Vector2.Distance(player.position, spawnPos);
-        }
-        while (distance < minSpawnDistance);
-
-        // Instancie l'ennemi
+        Vector2 spawnPos = GetRandomSpawnPosition();
+        
         GameObject enemy = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
         
-        // Ajoute le tag Enemy s'il n'en a pas déjà
+        // Set enemy tag if not already set
         if (enemy.tag != "Enemy")
         {
             enemy.tag = "Enemy";
         }
+        
+        // Apply current difficulty speed to the enemy
+        EnemyMovement enemyMovement = enemy.GetComponent<EnemyMovement>();
+        if (enemyMovement != null)
+        {
+            enemyMovement.speed = currentEnemySpeed;
+        }
+    }
+    
+    Vector2 GetRandomSpawnPosition()
+    {
+        Vector2 spawnPos;
+        float distance;
+        int attempts = 0;
+        const int maxAttempts = 10;
+
+        do
+        {
+            float angle = Random.Range(0f, Mathf.PI * 2);
+            float spawnDistance = Random.Range(minSpawnDistance, maxSpawnDistance);
+            
+            float x = Mathf.Cos(angle) * spawnDistance;
+            float y = Mathf.Sin(angle) * spawnDistance;
+            
+            spawnPos = new Vector2(player.position.x + x, player.position.y + y);
+            distance = Vector2.Distance(player.position, spawnPos);
+            
+            attempts++;
+        }
+        while (distance < minSpawnDistance && attempts < maxAttempts);
+
+        return spawnPos;
+    }
+    
+    // Public method to get current difficulty info (useful for UI or debugging)
+    public string GetDifficultyInfo()
+    {
+        return $"Level: {currentDifficultyLevel}, Spawn Rate: {currentSpawnInterval:F2}s, Max Enemies: {currentMaxEnemies}, Speed: {currentEnemySpeed:F2}";
+    }
+    
+    // Method to manually test difficulty increase (for debugging)
+    [ContextMenu("Increase Difficulty")]
+    void TestDifficultyIncrease()
+    {
+        currentDifficultyLevel++;
+        UpdateDifficulty();
+        Debug.Log("Manual difficulty increase: " + GetDifficultyInfo());
     }
 }
