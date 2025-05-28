@@ -15,8 +15,10 @@ public class GameManager : MonoBehaviour
     [Header("Scene Management")]
     public string mainMenuSceneName = "MainMenu";
 
+    [Header("Input Settings")]
+    public string pauseButton = "Menu_Button"; // Default Unity Input Manager name for Select/Start button
+
     private PlayerController playerController;
-    // No direct AudioManager reference needed here if AudioManager is a Singleton an accessible via Instance
 
     void Awake()
     {
@@ -30,21 +32,24 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-
         if (pauseMenuUI != null)
         {
             pauseMenuUI.SetActive(false);
         }
 
         playerController = FindObjectOfType<PlayerController>();
-        // audioManager = FindObjectOfType<AudioManager>(); // Not strictly needed if using Singleton
     }
 
     void Update()
     {
-        if (!isPlayerDead && (Input.GetButtonDown("Menu_Button") || Input.GetKeyDown(KeyCode.Escape)))
+        // Only check for pause input if player is not dead
+        if (!isPlayerDead)
         {
-            TogglePause();
+            // Check for pause button (controller) or Escape key
+            if (Input.GetButtonDown(pauseButton) || Input.GetKeyDown(KeyCode.Escape))
+            {
+                TogglePause();
+            }
         }
     }
 
@@ -66,8 +71,10 @@ public class GameManager : MonoBehaviour
 
     public void PauseGame()
     {
-        if (isPlayerDead) return; // Should already be handled by TogglePause check but good to be safe
-        isPaused = true; // Ensure state is set
+        if (isPlayerDead) return;
+        
+        Debug.Log("GameManager: Pausing game");
+        isPaused = true;
         Time.timeScale = 0f;
 
         if (pauseMenuUI != null)
@@ -75,61 +82,84 @@ public class GameManager : MonoBehaviour
             pauseMenuUI.SetActive(true);
         }
 
+        // Disable player input/movement
         if (playerController != null)
         {
-            // playerController.SetPlayerDead(true); // This seems too aggressive for a simple pause
-                                                 // If SetPlayerDead also disables input, it's okay.
-                                                 // Or use a separate playerController.SetInputEnabled(false);
+            playerController.enabled = false; // This will disable all player input
         }
 
+        // Pause all audio through AudioManager
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.PauseGameAudio(); // Use new method
+            AudioManager.Instance.PauseGameAudio();
         }
+
+        // Show cursor for menu navigation
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
     }
 
     public void ResumeGame()
     {
-        // isPaused = false; // Set by TogglePause before calling this
+        Debug.Log("GameManager: Resuming game");
+        isPaused = false;
         Time.timeScale = 1f;
-        // isPaused is already false here if called from TogglePause
 
         if (pauseMenuUI != null)
         {
             pauseMenuUI.SetActive(false);
         }
 
+        // Re-enable player input/movement
         if (!isPlayerDead && playerController != null)
         {
-            // playerController.SetPlayerDead(false); // See comment in PauseGame
-            // Or use playerController.SetInputEnabled(true);
+            playerController.enabled = true;
         }
 
+        // Resume all audio through AudioManager
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.ResumeGameAudio(); // Use new method
+            AudioManager.Instance.ResumeGameAudio();
         }
+
+        // Hide cursor and lock it for gameplay
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
     }
 
     public void SetPlayerDead(bool isDead)
     {
+        Debug.Log($"GameManager: SetPlayerDead called with {isDead}");
         isPlayerDead = isDead;
         
         if (isDead)
         {
-            if (isPaused) // If player dies while paused
+            // If player dies while game is paused, close pause menu
+            if (isPaused)
             {
-                // isPaused = false; // No, keep game paused but hide menu if that's the design
-                Time.timeScale = 0f; // Ensure time remains paused
+                isPaused = false; // Reset pause state
                 if (pauseMenuUI != null)
                 {
-                    // pauseMenuUI.SetActive(false); // Or keep it, depends on design
+                    pauseMenuUI.SetActive(false);
                 }
             }
             
-            if (AudioManager.Instance != null)
+            // Time.timeScale will be set to 0 by DeathScreenManager
+            // Audio will be stopped by DeathScreenManager calling StopAllMusicImmediately
+            
+            // Disable player controller
+            if (playerController != null)
             {
-                AudioManager.Instance.PauseGameAudio(); // Player death should pause ongoing sounds
+                playerController.enabled = false;
+            }
+        }
+        else
+        {
+            // Player respawned/revived - this might not be used in your current setup
+            // but good to have for completeness
+            if (playerController != null)
+            {
+                playerController.enabled = true;
             }
         }
     }
@@ -139,19 +169,22 @@ public class GameManager : MonoBehaviour
         return isPlayerDead;
     }
     
+    public bool IsGamePaused()
+    {
+        return isPaused;
+    }
+    
     public void ReturnToMenu()
     {
+        Debug.Log("GameManager: Returning to main menu");
         Time.timeScale = 1f;
         isPaused = false;
         isPlayerDead = false;
 
-        // Explicitly stop boss music and resume main track if returning to menu
+        // Stop all music and reset audio states
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.StopBossMusic();
-            AudioManager.Instance.ResumeMainTrackAfterBoss(); // Try to reset main music
-            // Potentially a more forceful stop of all game music might be needed here
-            // depending on how main menu handles its own music.
+            AudioManager.Instance.StopAllMusicImmediately();
         }
         
         SceneManager.LoadScene(mainMenuSceneName);

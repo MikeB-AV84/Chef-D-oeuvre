@@ -9,27 +9,27 @@ public class AudioManager : MonoBehaviour
 
     [Header("Music Settings")]
     public List<AudioClip> musicTracks;
-    public AudioSource musicSource;
+    public AudioSource musicSource; // Assign your primary music AudioSource in Inspector
     [Range(0f, 1f)] public float musicVolume = 0.5f;
     public float trackSwitchDelay = 1f;
     public float skipFadeDuration = 0.5f;
     public float fadeInDuration = 0.5f;
 
     [Header("Boss Music Settings")]
-    public AudioClip bossMusicClip;
+    public AudioClip bossMusicClip; // Assign your boss music clip in the Inspector
     private AudioSource bossMusicSource;
 
     [Header("Input Settings")]
-    public string skipButton = "JoystickButton9"; // This is your "R3"
+    public string skipButton = "JoystickButton9"; // This is your "R3" (or change to desired input)
     public float doubleClickTime = 0.3f;
 
-    private AudioSource secondaryMusicSource;
+    private AudioSource secondaryMusicSource; // Used for crossfading
     private List<AudioClip> playlist;
     private int currentTrackIndex = 0;
     private Coroutine musicRoutine;
     private bool isSkipping = false;
 
-    // Pause States:
+    // --- Pause States ---
     private bool isGameGloballyPaused = false;     // True if GameManager paused the game (e.g., Escape menu)
     private bool isMainMusicPausedForBoss = false; // True if main music is paused because a boss is active
     private bool isMainMusicUserPaused = false;    // True if user paused main music via R3 single press
@@ -54,6 +54,12 @@ public class AudioManager : MonoBehaviour
 
     private void Initialize()
     {
+        // Ensure musicSource is assigned in Inspector, if not, try to add it.
+        if (musicSource == null)
+        {
+            Debug.LogWarning("AudioManager: MusicSource not assigned in Inspector. Adding one.");
+            musicSource = gameObject.AddComponent<AudioSource>();
+        }
         musicSource.loop = false;
         musicSource.volume = 0f;
         musicSource.playOnAwake = false;
@@ -79,8 +85,15 @@ public class AudioManager : MonoBehaviour
     private void CreatePlaylist()
     {
         playlist = new List<AudioClip>(musicTracks);
-        ShufflePlaylist();
-        currentTrackIndex = 0;
+        if (playlist.Count > 0)
+        {
+            ShufflePlaylist();
+            currentTrackIndex = 0;
+        }
+        else
+        {
+            Debug.LogWarning("AudioManager: No music tracks assigned to the playlist.");
+        }
     }
 
     private void ShufflePlaylist()
@@ -104,9 +117,13 @@ public class AudioManager : MonoBehaviour
             StopCoroutine(musicRoutine);
         }
 
-        if (playlist.Count > 0 && playlist[0] != null) // Ensure playlist is valid
+        if (playlist.Count > 0 && currentTrackIndex < playlist.Count && playlist[currentTrackIndex] != null)
         {
             musicRoutine = StartCoroutine(MusicPlaybackRoutine());
+        }
+        else if (playlist.Count > 0)
+        {
+             Debug.LogWarning("AudioManager: Playlist has tracks but current track is invalid or null. Can't start music playback.");
         }
     }
 
@@ -114,41 +131,57 @@ public class AudioManager : MonoBehaviour
     {
         while (true)
         {
-            if (playlist.Count == 0 || playlist[currentTrackIndex] == null)
+            if (playlist.Count == 0 || currentTrackIndex >= playlist.Count || playlist[currentTrackIndex] == null)
             {
-                // Debug.LogWarning("Playlist empty or current track null, stopping music routine.");
-                yield break;
+                yield break; // Stop if playlist is invalid
             }
 
             musicSource.clip = playlist[currentTrackIndex];
             musicSource.volume = 0f;
 
+            // Wait for all pause conditions to clear before starting
             while (ShouldMainMusicBePaused())
             {
                 yield return null;
             }
-            if (musicSource.clip != null) musicSource.Play(); else yield break;
+            
+            if (musicSource.clip != null) 
+            {
+                musicSource.Play();
+            }
+            else 
+            { 
+                yield break; 
+            }
 
-
+            // Fade in
             float timer = 0f;
             while (timer < fadeInDuration)
             {
-                while (ShouldMainMusicBePaused()) yield return null;
+                while (ShouldMainMusicBePaused()) 
+                {
+                    yield return null;
+                }
                 musicSource.volume = Mathf.Lerp(0f, musicVolume, timer / fadeInDuration);
-                timer += Time.unscaledDeltaTime; // Use unscaledDeltaTime for UI/audio fades independent of Time.timeScale
+                timer += Time.unscaledDeltaTime;
                 yield return null;
             }
             musicSource.volume = musicVolume;
 
-            float remainingTime = (musicSource.clip != null ? musicSource.clip.length : 0) - fadeInDuration;
+            // Play the main portion of the track
+            float clipLength = musicSource.clip != null ? musicSource.clip.length : 0f;
+            float remainingTime = clipLength - fadeInDuration;
             if (remainingTime < 0) remainingTime = 0;
             float elapsed = 0f;
 
             while (elapsed < remainingTime && !isSkipping)
             {
-                while (ShouldMainMusicBePaused() && !isSkipping) yield return null;
+                while (ShouldMainMusicBePaused() && !isSkipping) 
+                {
+                    yield return null;
+                }
                 
-                if (!ShouldMainMusicBePaused())
+                if (!ShouldMainMusicBePaused()) // Only increment if not paused
                 {
                     elapsed += Time.unscaledDeltaTime;
                 }
@@ -157,11 +190,15 @@ public class AudioManager : MonoBehaviour
 
             if (!isSkipping) // Natural end of track
             {
+                // Fade out
                 float startVolume = musicSource.volume;
                 timer = 0f;
                 while (timer < skipFadeDuration)
                 {
-                    while (ShouldMainMusicBePaused()) yield return null;
+                    while (ShouldMainMusicBePaused()) 
+                    {
+                        yield return null;
+                    }
                     musicSource.volume = Mathf.Lerp(startVolume, 0f, timer / skipFadeDuration);
                     timer += Time.unscaledDeltaTime;
                     yield return null;
@@ -171,15 +208,19 @@ public class AudioManager : MonoBehaviour
                 musicSource.volume = 0f;
                 AdvanceTrack();
 
+                // Delay between tracks
                 float delayTimer = 0f;
                 while(delayTimer < trackSwitchDelay)
                 {
-                    while (ShouldMainMusicBePaused()) yield return null;
+                    while (ShouldMainMusicBePaused()) 
+                    {
+                        yield return null;
+                    }
                     delayTimer += Time.unscaledDeltaTime;
                     yield return null;
                 }
             }
-            // If isSkipping, CrossFadeSkipRoutine handles transition and restarts this routine.
+            // If isSkipping, CrossFadeSkipRoutine handles the transition
         }
     }
 
@@ -190,21 +231,27 @@ public class AudioManager : MonoBehaviour
     
     private void Update()
     {
-        if (Input.GetButtonDown(skipButton) || Input.GetKeyDown(KeyCode.E)) // R3 or E key
+        // Only process music controls if game is not globally paused (Escape menu)
+        // This prevents music controls from interfering with menu navigation
+        if (!isGameGloballyPaused)
         {
-            clickCount++;
-            if (clickResetCoroutine != null) StopCoroutine(clickResetCoroutine); // Stop previous reset if rapid clicks
-            clickResetCoroutine = StartCoroutine(ResetClickCount());
-
-            if (clickCount == 1)
+            // R3 or E key for music control
+            if (Input.GetButtonDown(skipButton) || Input.GetKeyDown(KeyCode.E))
             {
-                lastClickTime = Time.unscaledTime; // Use unscaledTime for UI interactions
-            }
-            else if (clickCount >= 2 && Time.unscaledTime - lastClickTime <= doubleClickTime)
-            {
+                clickCount++;
                 if (clickResetCoroutine != null) StopCoroutine(clickResetCoroutine);
-                SkipTrack(); // Double press skips main playlist track
-                clickCount = 0;
+                clickResetCoroutine = StartCoroutine(ResetClickCount());
+
+                if (clickCount == 1)
+                {
+                    lastClickTime = Time.unscaledTime;
+                }
+                else if (clickCount >= 2 && (Time.unscaledTime - lastClickTime <= doubleClickTime))
+                {
+                    if (clickResetCoroutine != null) StopCoroutine(clickResetCoroutine);
+                    SkipTrack(); // Double press skips main playlist track
+                    clickCount = 0;
+                }
             }
         }
     }
@@ -212,40 +259,54 @@ public class AudioManager : MonoBehaviour
     private IEnumerator ResetClickCount()
     {
         // Wait for the double-click window to expire
-        yield return new WaitForSecondsRealtime(doubleClickTime); // Use WaitForSecondsRealtime for UI timing
+        yield return new WaitForSecondsRealtime(doubleClickTime);
 
-        if (clickCount == 1) // If only one click occurred
+        if (clickCount == 1) // If, after the delay, it's still just one click
         {
             ToggleMainMusicUserPause(); // Single press toggles pause for main playlist
         }
-        clickCount = 0; // Reset for next interaction
+        clickCount = 0;
     }
 
     private void ToggleMainMusicUserPause()
     {
         isMainMusicUserPaused = !isMainMusicUserPaused;
+        Debug.Log($"AudioManager: User pause toggled. isMainMusicUserPaused = {isMainMusicUserPaused}");
+        
         if (isMainMusicUserPaused)
         {
             if (musicSource.isPlaying) musicSource.Pause();
             if (secondaryMusicSource.isPlaying) secondaryMusicSource.Pause();
-            // Debug.Log("Main music user-paused (R3).");
         }
         else
         {
-            // Only unpause if no other pause conditions are met
+            // Only unpause if no other "master" pause conditions are met
             if (!isGameGloballyPaused && !isMainMusicPausedForBoss)
             {
-                if (!musicSource.isPlaying && musicSource.time > 0) musicSource.UnPause();
-                if (secondaryMusicSource.clip != null && !secondaryMusicSource.isPlaying && secondaryMusicSource.time > 0) secondaryMusicSource.UnPause();
+                if (!musicSource.isPlaying && musicSource.time > 0 && musicSource.clip != null) 
+                {
+                    musicSource.UnPause();
+                }
+                if (secondaryMusicSource.clip != null && !secondaryMusicSource.isPlaying && secondaryMusicSource.time > 0) 
+                {
+                    secondaryMusicSource.UnPause();
+                }
             }
-            // Debug.Log("Main music user-resumed (R3).");
         }
     }
 
     public void SkipTrack()
     {
-        // Can only skip main playlist tracks, and only if it's not paused for boss or by user in a way that implies "don't touch"
-        if (isSkipping || playlist.Count == 0 || isMainMusicPausedForBoss || isMainMusicUserPaused) return;
+        // Can only skip main playlist tracks.
+        // Prevent skipping if music is paused for boss, or if user explicitly paused it
+        if (isSkipping || playlist.Count <= 1 || isMainMusicPausedForBoss || isMainMusicUserPaused) 
+        {
+            Debug.Log($"AudioManager: Skip blocked. isSkipping={isSkipping}, playlist.Count={playlist.Count}, isMainMusicPausedForBoss={isMainMusicPausedForBoss}, isMainMusicUserPaused={isMainMusicUserPaused}");
+            return;
+        }
+        
+        Debug.Log("AudioManager: Skipping track");
+        if (musicRoutine != null) StopCoroutine(musicRoutine);
         StartCoroutine(CrossFadeSkipRoutine());
     }
 
@@ -254,44 +315,138 @@ public class AudioManager : MonoBehaviour
         isSkipping = true;
 
         AdvanceTrack();
-        if (playlist.Count == 0 || playlist[currentTrackIndex] == null) { isSkipping = false; yield break; }
+        if (playlist.Count == 0 || currentTrackIndex >= playlist.Count || playlist[currentTrackIndex] == null) 
+        { 
+            isSkipping = false; 
+            StartMusic();
+            yield break; 
+        }
 
         secondaryMusicSource.clip = playlist[currentTrackIndex];
         secondaryMusicSource.volume = 0f;
-        if (secondaryMusicSource.clip != null) secondaryMusicSource.Play(); else {isSkipping = false; yield break;}
-
+        if (secondaryMusicSource.clip != null) 
+        {
+            secondaryMusicSource.Play();
+        }
+        else 
+        { 
+            isSkipping = false; 
+            StartMusic(); 
+            yield break;
+        }
 
         float timer = 0f;
-        float startVolume = musicSource.volume;
+        float startVolumeMusicSource = musicSource.isPlaying ? musicSource.volume : 0f;
 
         while (timer < skipFadeDuration)
         {
-            // Crossfade should still happen even if game is globally paused, uses unscaledDeltaTime
-            // However, if the main music is supposed to be fully silent (e.g. for boss), this needs care.
-            // For now, let's assume crossfade always tries to complete visually.
-            // If isGameGloballyPaused, sources might be paused externally by PauseGameAudio.
             float t = timer / skipFadeDuration;
-            if(!isGameGloballyPaused) musicSource.volume = Mathf.Lerp(startVolume, 0f, t); // Only change if not globally paused
-            if(!isGameGloballyPaused) secondaryMusicSource.volume = Mathf.Lerp(0f, musicVolume, t);
+            // Only adjust volume if not globally paused
+            if (!isGameGloballyPaused) 
+            {
+                if (musicSource.isPlaying) musicSource.volume = Mathf.Lerp(startVolumeMusicSource, 0f, t);
+                secondaryMusicSource.volume = Mathf.Lerp(0f, musicVolume, t);
+            }
             timer += Time.unscaledDeltaTime;
             yield return null;
         }
 
-        if(!isGameGloballyPaused) musicSource.Stop();
+        if (musicSource.isPlaying) musicSource.Stop();
+        musicSource.volume = 0f;
         
+        // Swap the audio sources
         AudioSource tempSource = musicSource;
         musicSource = secondaryMusicSource;
         secondaryMusicSource = tempSource;
-        secondaryMusicSource.Stop(); // Ensure old secondary (now primary) is stopped.
+        secondaryMusicSource.Stop(); 
+        secondaryMusicSource.volume = 0f;
 
         isSkipping = false;
 
+        // Restart the main routine for the new track
         if (musicRoutine != null) StopCoroutine(musicRoutine);
-        // Restart main music routine only if not paused for boss or user
-        if (!isMainMusicPausedForBoss && !isMainMusicUserPaused)
+        if (!ShouldMainMusicBePaused())
         {
-            musicRoutine = StartCoroutine(MusicPlaybackRoutine());
+            currentTrackIndex = playlist.IndexOf(musicSource.clip);
+            if (currentTrackIndex != -1) 
+            {
+                musicRoutine = StartCoroutine(MusicPlaybackRoutine_ResumeFromCrossfade());
+            }
+            else 
+            {
+                StartMusic();
+            }
         }
+    }
+    
+    private IEnumerator MusicPlaybackRoutine_ResumeFromCrossfade()
+    {
+        if (musicSource == null || musicSource.clip == null) yield break;
+
+        while (ShouldMainMusicBePaused()) yield return null;
+
+        float clipLength = musicSource.clip.length;
+        float elapsed = musicSource.time;
+        float remainingTime = clipLength - elapsed;
+
+        while (elapsed < clipLength && !isSkipping)
+        {
+            while (ShouldMainMusicBePaused() && !isSkipping) 
+            {
+                yield return null;
+            }
+            
+            if (!ShouldMainMusicBePaused())
+            {
+                elapsed += Time.unscaledDeltaTime; 
+            }
+            
+            if (!musicSource.isPlaying && !ShouldMainMusicBePaused())
+            {
+                if (musicSource.time < clipLength - 0.1f) 
+                {
+                    musicSource.Play();
+                }
+                else 
+                {
+                    break;
+                }
+            }
+            yield return null;
+        }
+
+        if (!isSkipping) // Natural end of track
+        {
+            float startVolume = musicSource.volume;
+            float timer = 0f;
+            while (timer < skipFadeDuration)
+            {
+                while (ShouldMainMusicBePaused()) 
+                {
+                    yield return null;
+                }
+                musicSource.volume = Mathf.Lerp(startVolume, 0f, timer / skipFadeDuration);
+                timer += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            musicSource.Stop();
+            musicSource.volume = 0f;
+            AdvanceTrack();
+
+            float delayTimer = 0f;
+            while(delayTimer < trackSwitchDelay)
+            {
+                while (ShouldMainMusicBePaused()) 
+                {
+                    yield return null;
+                }
+                delayTimer += Time.unscaledDeltaTime;
+                yield return null;
+            }
+        }
+        
+        if (musicRoutine != null) StopCoroutine(musicRoutine);
+        if (!isSkipping) StartMusic();
     }
 
     private void AdvanceTrack()
@@ -299,7 +454,7 @@ public class AudioManager : MonoBehaviour
         currentTrackIndex++;
         if (currentTrackIndex >= playlist.Count)
         {
-            StartCoroutine(ShuffleNextFrame()); // Shuffle for next cycle
+            StartCoroutine(ShuffleNextFrame());
             currentTrackIndex = 0;
         }
     }
@@ -310,53 +465,64 @@ public class AudioManager : MonoBehaviour
         ShufflePlaylist();
     }
 
-    // Called by GameManager when game is actually paused (e.g. Escape menu)
+    // Called by GameManager when game is globally paused (e.g. Escape menu)
     public void PauseGameAudio()
     {
+        Debug.Log("AudioManager: PauseGameAudio called");
         isGameGloballyPaused = true;
         if (musicSource.isPlaying) musicSource.Pause();
         if (secondaryMusicSource.isPlaying) secondaryMusicSource.Pause();
-        if (bossMusicSource != null && bossMusicSource.isPlaying) bossMusicSource.Pause(); // Boss music IS paused by global game pause
+        if (bossMusicSource != null && bossMusicSource.isPlaying) bossMusicSource.Pause();
     }
 
-    // Called by GameManager when game is actually resumed
+    // Called by GameManager when game is globally resumed
     public void ResumeGameAudio()
     {
+        Debug.Log("AudioManager: ResumeGameAudio called");
         isGameGloballyPaused = false;
 
-        // Main music only resumes if NOT paused for boss AND NOT user-paused by R3
         if (!isMainMusicPausedForBoss && !isMainMusicUserPaused)
         {
-            if (!musicSource.isPlaying && musicSource.time > 0) musicSource.UnPause();
-            if (secondaryMusicSource.clip != null && !secondaryMusicSource.isPlaying && secondaryMusicSource.time > 0) secondaryMusicSource.UnPause();
+            if (!musicSource.isPlaying && musicSource.time > 0 && musicSource.clip != null) 
+            {
+                musicSource.UnPause();
+            }
+            if (secondaryMusicSource.clip != null && !secondaryMusicSource.isPlaying && secondaryMusicSource.time > 0) 
+            {
+                secondaryMusicSource.UnPause();
+            }
         }
         
-        // Boss music resumes if it was playing (it's not affected by R3 user pause or boss-specific pause for main track)
-        if (bossMusicSource != null && !bossMusicSource.isPlaying && bossMusicSource.time > 0 && bossMusicSource.clip != null) bossMusicSource.UnPause();
+        if (bossMusicSource != null && !bossMusicSource.isPlaying && bossMusicSource.time > 0 && bossMusicSource.clip != null) 
+        {
+            bossMusicSource.UnPause();
+        }
     }
 
     // --- Boss Music Specific Methods ---
     public void PlayBossMusic()
     {
-        PauseMainTrackForBoss(); // Pause the main music track(s)
+        Debug.Log("AudioManager: PlayBossMusic called");
+        PauseMainTrackForBoss(); 
 
         if (bossMusicClip != null && bossMusicSource != null)
         {
             bossMusicSource.clip = bossMusicClip;
             bossMusicSource.volume = musicVolume;
-            if (!isGameGloballyPaused) // Only play if game is not globally paused
+            if (!isGameGloballyPaused) 
             {
                 bossMusicSource.Play();
             }
             else
             {
-                 bossMusicSource.time = 0; // Ensure it starts from beginning when unpaused by ResumeGameAudio
+                 bossMusicSource.time = 0;
             }
         }
     }
 
     public void StopBossMusic()
     {
+        Debug.Log("AudioManager: StopBossMusic called");
         if (bossMusicSource != null && bossMusicSource.isPlaying)
         {
             bossMusicSource.Stop();
@@ -365,6 +531,7 @@ public class AudioManager : MonoBehaviour
 
     public void PauseMainTrackForBoss()
     {
+        Debug.Log("AudioManager: PauseMainTrackForBoss called");
         isMainMusicPausedForBoss = true;
         if (musicSource.isPlaying) musicSource.Pause();
         if (secondaryMusicSource.isPlaying) secondaryMusicSource.Pause();
@@ -372,39 +539,48 @@ public class AudioManager : MonoBehaviour
 
     public void ResumeMainTrackAfterBoss()
     {
+        Debug.Log("AudioManager: ResumeMainTrackAfterBoss called");
         isMainMusicPausedForBoss = false;
-        // Only unpause main music if not globally paused AND not user-paused by R3
         if (!isGameGloballyPaused && !isMainMusicUserPaused)
         {
             if (!musicSource.isPlaying && musicSource.time > 0 && musicSource.clip != null) 
             {
                  musicSource.UnPause();
             } 
-            // If music was stopped and routine needs restart
-            else if ((!musicSource.isPlaying || musicSource.clip == null) && musicRoutine == null && playlist.Count > 0)
+            else if ((!musicSource.isPlaying || musicSource.clip == null) && playlist.Count > 0)
             {
+                 if(musicRoutine != null) StopCoroutine(musicRoutine);
                  StartMusic();
             }
         }
     }
 
-    // --- General Music Control Methods (used by other systems if needed) ---
-    public void PlayMainPlaylistMusic() // Call this on scene load or when explicitly starting main music
+    // --- General Music Control ---
+    public void PlayMainPlaylistMusic() 
     {
         if (isMainMusicPausedForBoss || isMainMusicUserPaused) return;
 
         if (musicRoutine != null) StopCoroutine(musicRoutine);
-        ShufflePlaylist();
-        currentTrackIndex = 0;
+        CreatePlaylist();
         StartMusic();
     }
 
-    public void StopAllMusicImmediately() // For critical stops
+    public void StopAllMusicImmediately() 
     {
-        if (musicRoutine != null) StopCoroutine(musicRoutine);
-        if (musicSource.isPlaying) musicSource.Stop();
-        if (secondaryMusicSource.isPlaying) secondaryMusicSource.Stop();
+        Debug.Log("AudioManager: StopAllMusicImmediately called");
+        if (musicRoutine != null) { StopCoroutine(musicRoutine); musicRoutine = null; }
+        if (musicSource != null && musicSource.isPlaying) musicSource.Stop();
+        if (secondaryMusicSource != null && secondaryMusicSource.isPlaying) secondaryMusicSource.Stop();
         if (bossMusicSource != null && bossMusicSource.isPlaying) bossMusicSource.Stop();
+        
+        if (musicSource != null) musicSource.volume = 0f;
+        if (secondaryMusicSource != null) secondaryMusicSource.volume = 0f;
+        if (bossMusicSource != null) bossMusicSource.volume = 0f;
+        
+        // Reset all pause states when stopping all music
+        isMainMusicUserPaused = false;
+        isMainMusicPausedForBoss = false;
+        // Don't reset isGameGloballyPaused as that should only be controlled by GameManager
     }
 
     public void SetMusicVolume(float volume)
@@ -414,7 +590,7 @@ public class AudioManager : MonoBehaviour
         {
             musicSource.volume = musicVolume;
         }
-        if (bossMusicSource != null && bossMusicSource.isPlaying && !isGameGloballyPaused) // Boss music volume only affected by global pause
+        if (bossMusicSource != null && bossMusicSource.isPlaying && !isGameGloballyPaused)
         {
             bossMusicSource.volume = musicVolume;
         }
@@ -428,26 +604,18 @@ public class AudioManager : MonoBehaviour
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        if (musicRoutine != null) StopCoroutine(musicRoutine);
+        if (clickResetCoroutine != null) StopCoroutine(clickResetCoroutine);
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Assuming "GameScene" is where gameplay and this AudioManager are primarily active.
-        // Adjust scene name as necessary.
-        if (scene.name == "GameScene") 
+        Debug.Log($"AudioManager: Scene loaded - {scene.name}");
+        if (scene.name == "GameScene")
         {
-            // Reset states that shouldn't persist across main game scene loads
             isMainMusicPausedForBoss = false; 
             isMainMusicUserPaused = false;
-            // isGameGloballyPaused is managed by GameManager, typically false on new scene load unless designed otherwise
-
-            PlayMainPlaylistMusic(); // Start the main playlist
-        }
-        else
-        {
-            // If loading a menu or other non-gameplay scene, you might want to stop all music
-            // or play a specific menu track (which would be new logic).
-            // StopAllMusicImmediately(); // Example: Stop music if not the game scene
+            PlayMainPlaylistMusic(); 
         }
     }
 }
