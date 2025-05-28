@@ -167,18 +167,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15bf116f754917f4dbe888830bbd1213, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxHealth: 100
+  bossTag: Boss
   missilePrefab: {fileID: 8518051427646673370, guid: 4c7dcaf01b3b27145addb533e2606093, type: 3}
-  heartPickupPrefab: {fileID: 6840657895234986194, guid: da3d09542b1c4fa40b5b82069615736e, type: 3}
-  shieldPickupPrefab: {fileID: 5138960977784813881, guid: 0d99e6cdb1dec184f851834de6a1c47c, type: 3}
-  moveSpeed: 1
-  hitsToDefeat: 30
   missileLaunchPoints:
   - {fileID: 3628326976503445460}
   - {fileID: 2738085003891423345}
   missileSpeed: 6
   timeBetweenMissiles: 5
+  moveSpeed: 1
   rotationSpeed: 30
   rotationSmoothing: 5
+  heartPickupPrefab: {fileID: 6840657895234986194, guid: da3d09542b1c4fa40b5b82069615736e, type: 3}
+  shieldPickupPrefab: {fileID: 5138960977784813881, guid: 0d99e6cdb1dec184f851834de6a1c47c, type: 3}
+  heartDropAmount: 4
+  shieldDropAmount: 1
+  scoreForDefeat: 500
+  spriteRenderer: {fileID: 0}
+  hitFlashColor: {r: 1, g: 0, b: 0, a: 1}
+  hitFlashDuration: 0.1
 --- !u!114 &3288193882529631937
 MonoBehaviour:
   m_ObjectHideFlags: 0
