@@ -9,6 +9,12 @@ public class BossFireController : MonoBehaviour
     void Start()
     {
         boss = GetComponent<Boss>();
+        if (boss == null)
+        {
+            Debug.LogError("BossFireController: Boss component not found on this GameObject.");
+            enabled = false; // Disable script if boss component is missing
+            return;
+        }
         StartCoroutine(FireRoutine());
     }
 
@@ -17,7 +23,14 @@ public class BossFireController : MonoBehaviour
         while (true)
         {
             yield return new WaitForSeconds(fireInterval);
-            StartCoroutine(boss.FireMissiles());
+            if (boss != null) // Check if boss still exists
+            {
+                boss.StartMissileAttack(); // MODIFIED LINE
+            }
+            else
+            {
+                yield break; // Stop coroutine if boss is destroyed
+            }
         }
     }
 }

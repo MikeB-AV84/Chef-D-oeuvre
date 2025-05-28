@@ -29,430 +29,299 @@ public class DeathScreenManager : MonoBehaviour
     private bool deathScreenActive = false;
     private int currentScore = 0;
     private bool isHighScore = false;
-    private GameObject hoveredElement; // Track which element is being hovered
+    private GameObject hoveredElement; 
     
     [Header("References")]
-    public GameManager gameManager;  // Reference to the GameManager
+    public GameManager gameManager;
 
-    // Add this to the class fields at the top
-    // Add a cooldown timer to prevent input bleed-through
     private float inputCooldownTimer = 0f;
-    private const float INPUT_COOLDOWN_DURATION = 1.5f; // Half-second cooldown
+    private const float INPUT_COOLDOWN_DURATION = 1.5f; 
     private bool hasSubmittedName = false;
 
-    // Store original scales
     private Vector3 originalRestartButtonScale;
     private Vector3 originalSubmitButtonScale;
     private Vector3 originalInputFieldScale;
 
+    private GameObject currentSelection;
+    private bool joystickMoved = false;
+
     void Awake()
     {
-        Instance = this;
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         deathScreen.SetActive(false);
         nameInputPanel.SetActive(false);
         hasSubmittedName = false;
         
-        // If gameManager is not assigned, try to find it
         if (gameManager == null)
         {
             gameManager = FindObjectOfType<GameManager>();
         }
 
-        // Setup button listeners
         submitNameButton.onClick.AddListener(SubmitName);
+        // The restartButton listener is added dynamically after name submission
         
-        // Store original scales
-        originalRestartButtonScale = restartButton.transform.localScale;
-        originalSubmitButtonScale = submitNameButton.transform.localScale;
-        originalInputFieldScale = nameInputField.transform.localScale;
+        if(restartButton != null) originalRestartButtonScale = restartButton.transform.localScale;
+        if(submitNameButton != null) originalSubmitButtonScale = submitNameButton.transform.localScale;
+        if(nameInputField != null) originalInputFieldScale = nameInputField.transform.localScale;
         
-        // Add mouse hover events
         AddMouseHoverEvents();
     }
 
     void AddMouseHoverEvents()
     {
-        // Add hover events for restart button
-        AddHoverEvent(restartButton.gameObject, true);
-        
-        // Add hover events for submit button
-        AddHoverEvent(submitNameButton.gameObject, true);
-        
-        // Add hover events for input field
-        AddHoverEvent(nameInputField.gameObject, false);
+        if(restartButton != null) AddHoverEvent(restartButton.gameObject, true);
+        if(submitNameButton != null) AddHoverEvent(submitNameButton.gameObject, true);
+        if(nameInputField != null) AddHoverEvent(nameInputField.gameObject, false);
     }
     
     void AddHoverEvent(GameObject element, bool isButton)
     {
-        // Get or add EventTrigger component
-        EventTrigger eventTrigger = element.GetComponent<EventTrigger>();
-        if (eventTrigger == null)
-        {
-            eventTrigger = element.AddComponent<EventTrigger>();
-        }
+        EventTrigger eventTrigger = element.GetComponent<EventTrigger>() ?? element.AddComponent<EventTrigger>();
         
-        // Create mouse enter event
-        EventTrigger.Entry enterEvent = new EventTrigger.Entry();
-        enterEvent.eventID = EventTriggerType.PointerEnter;
+        EventTrigger.Entry enterEvent = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
         enterEvent.callback.AddListener((eventData) => OnMouseEnter(element, isButton));
         eventTrigger.triggers.Add(enterEvent);
         
-        // Create mouse exit event
-        EventTrigger.Entry exitEvent = new EventTrigger.Entry();
-        exitEvent.eventID = EventTriggerType.PointerExit;
+        EventTrigger.Entry exitEvent = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
         exitEvent.callback.AddListener((eventData) => OnMouseExit(element));
         eventTrigger.triggers.Add(exitEvent);
     }
     
     void OnMouseEnter(GameObject element, bool isButton)
     {
-        // Only respond if the element is currently active
         if (element.activeInHierarchy)
         {
             hoveredElement = element;
-            
-            if (isButton)
-            {
-                Button button = element.GetComponent<Button>();
-                if (button != null)
-                {
-                    SetSelectedElement(element);
-                }
-            }
-            else
-            {
-                // For input field
-                SetSelectedElement(element);
-            }
+            SetSelectedElement(element);
         }
     }
     
     void OnMouseExit(GameObject element)
     {
-        // Clear hovered element when mouse leaves
         if (hoveredElement == element)
         {
             hoveredElement = null;
         }
     }
 
-    private GameObject currentSelection;
-    private bool joystickMoved = false;
-
     void Update()
     {
-        // Update cooldown timer
         if (inputCooldownTimer > 0)
         {
             inputCooldownTimer -= Time.unscaledDeltaTime;
         }
 
-        // Update scaling for all elements
         UpdateElementScaling();
 
-        // Handle navigation in the name input panel
         if (nameInputPanel.activeSelf)
         {
             HandleNameInputNavigation();
         }
-        // Handle navigation in the death screen
-        else if (deathScreenActive && deathScreen.activeSelf)
+        else if (deathScreenActive && deathScreen.activeSelf && inputCooldownTimer <= 0)
         {
-            // Only process input after cooldown and if we have something selected
-            if (inputCooldownTimer <= 0)
+            // Restart logic for the final death screen (after name input)
+            if (currentSelection == restartButton.gameObject && 
+                (Input.GetButtonDown("Submit") || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.JoystickButton0) || Input.GetKeyDown(KeyCode.JoystickButton2))) // Common confirm buttons
             {
-                // Check for specific controller button (X button) first
-                if (Input.GetKeyDown(KeyCode.JoystickButton2))
-                {
-                    RestartGame();
-                    return;
-                }
-                
-                // Check for keyboard or mouse input
-                if (Input.GetKeyDown(KeyCode.Space) || 
-                    (Input.GetMouseButtonDown(0) && EventSystem.current.currentSelectedGameObject == restartButton.gameObject))
-                {
-                    RestartGame();
-                }
-            }
-            
-            // Prevent Submit button from triggering restart - critical for controllers
-            if (Input.GetButtonDown("Submit") && inputCooldownTimer <= 0)
-            {
-                // Consume this input without doing anything
-                inputCooldownTimer = 0.1f; // Small cooldown
+                RestartGame();
             }
         }
     }
     
     void UpdateElementScaling()
     {
-        // Update restart button scaling
-        if (restartButton != null)
+        ScaleElement(restartButton, originalRestartButtonScale);
+        ScaleElement(submitNameButton, originalSubmitButtonScale);
+        ScaleElement(nameInputField.gameObject, originalInputFieldScale); // TMP_InputField is a component, scale its GameObject
+    }
+
+    void ScaleElement(Button button, Vector3 originalScale)
+    {
+        if (button == null) return;
+        ScaleElement(button.gameObject, originalScale);
+    }
+
+    void ScaleElement(GameObject element, Vector3 originalScale)
+    {
+        if (element == null) return;
+        Vector3 targetScale = originalScale;
+        if (element == currentSelection)
         {
-            Vector3 targetScale = originalRestartButtonScale;
-            if (restartButton.gameObject == currentSelection)
-            {
-                targetScale *= selectedScale;
-            }
-            restartButton.transform.localScale = Vector3.Lerp(
-                restartButton.transform.localScale, 
-                targetScale, 
-                Time.unscaledDeltaTime * scaleSpeed);
+            targetScale *= selectedScale;
         }
-        
-        // Update submit button scaling
-        if (submitNameButton != null)
-        {
-            Vector3 targetScale = originalSubmitButtonScale;
-            if (submitNameButton.gameObject == currentSelection)
-            {
-                targetScale *= selectedScale;
-            }
-            submitNameButton.transform.localScale = Vector3.Lerp(
-                submitNameButton.transform.localScale, 
-                targetScale, 
-                Time.unscaledDeltaTime * scaleSpeed);
-        }
-        
-        // Update input field scaling
-        if (nameInputField != null)
-        {
-            Vector3 targetScale = originalInputFieldScale;
-            if (nameInputField.gameObject == currentSelection)
-            {
-                targetScale *= selectedScale;
-            }
-            nameInputField.transform.localScale = Vector3.Lerp(
-                nameInputField.transform.localScale, 
-                targetScale, 
-                Time.unscaledDeltaTime * scaleSpeed);
-        }
+        element.transform.localScale = Vector3.Lerp(
+            element.transform.localScale, 
+            targetScale, 
+            Time.unscaledDeltaTime * scaleSpeed);
     }
     
     void HandleNameInputNavigation()
     {
-        // Skip input handling during cooldown
-        if (inputCooldownTimer > 0 )
-        {
-            return;
-        }
+        if (inputCooldownTimer > 0 ) return;
 
-        // Get vertical input for navigation
         float verticalInput = Input.GetAxisRaw("Vertical");
-        
-        // Only register joystick movement when it crosses thresholds
         bool joystickUp = verticalInput > 0.5f;
         bool joystickDown = verticalInput < -0.5f;
         
-        // Handle joystick/d-pad navigation
         if ((joystickUp || Input.GetKeyDown(KeyCode.UpArrow)) && !joystickMoved)
         {
-            hoveredElement = null; // Clear mouse hover when using controller
-            // Move selection up
-            if (currentSelection == submitNameButton.gameObject)
-            {
-                SetInputFieldSelected();
-            }
+            hoveredElement = null; 
+            if (currentSelection == submitNameButton.gameObject) SetSelectedElement(nameInputField.gameObject);
             joystickMoved = true;
         }
         else if ((joystickDown || Input.GetKeyDown(KeyCode.DownArrow)) && !joystickMoved)
         {
-            hoveredElement = null; // Clear mouse hover when using controller
-            // Move selection down
-            if (currentSelection == nameInputField.gameObject)
-            {
-                SetSubmitButtonSelected();
-            }
+            hoveredElement = null; 
+            if (currentSelection == nameInputField.gameObject) SetSelectedElement(submitNameButton.gameObject);
             joystickMoved = true;
         }
         else if (Mathf.Abs(verticalInput) < 0.2f)
         {
-            // Reset joystick movement when returned to neutral position
             joystickMoved = false;
         }
         
-        // For Submit/A button, check specifically for the button down event
-        if (nameInputPanel.activeSelf && 
-            (Input.GetButtonDown("Submit") || Input.GetKeyDown(KeyCode.JoystickButton0))) // JoystickButton0 is typically the A button
+        if (Input.GetButtonDown("Submit") || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.JoystickButton0)) 
         {
-            // Store currently selected item and process accordingly
-            GameObject selectedObject = EventSystem.current.currentSelectedGameObject;
-            
-            if (selectedObject == submitNameButton.gameObject || selectedObject == nameInputField.gameObject)
+            if (currentSelection == submitNameButton.gameObject || currentSelection == nameInputField.gameObject)
             {
-                // Clear any cached inputs before transition
-                Input.ResetInputAxes();
                 SubmitName();
-                
-                // Apply a longer cooldown after submission to prevent input bleed-through
-                inputCooldownTimer = INPUT_COOLDOWN_DURATION;
             }
-        }
-        
-        // Submit name with Enter key
-        if (Input.GetKeyDown(KeyCode.Return))
-        {
-            Input.ResetInputAxes();
-            SubmitName();
         }
     }
 
     void SetSelectedElement(GameObject element)
     {
+        if (element == null) return;
+
         currentSelection = element;
-        
-        if (element == restartButton.gameObject)
+        EventSystem.current.SetSelectedGameObject(element); // This is important for controller/keyboard focus
+
+        if (element == nameInputField.gameObject)
         {
-            restartButton.Select();
-        }
-        else if (element == submitNameButton.gameObject)
-        {
-            submitNameButton.Select();
-        }
-        else if (element == nameInputField.gameObject)
-        {
-            nameInputField.Select();
             nameInputField.ActivateInputField();
         }
     }
 
     public void ShowDeathScreen(int finalScore)
     {
-        Time.timeScale = 0f;
+        Time.timeScale = 0f; // Pause the game
         currentScore = finalScore;
-        scoreText.text = string.Format(scoreFormat, finalScore);
+        if(scoreText != null) scoreText.text = string.Format(scoreFormat, finalScore);
         
-        // Check if this is a high score
         isHighScore = ScoreboardManager.Instance != null && 
                       ScoreboardManager.Instance.IsHighScore(finalScore);
         
-        // Enable cursors for mouse users
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
 
-        // Disable player controller input
         PlayerController playerController = FindObjectOfType<PlayerController>();
         if (playerController != null)
         {
-            playerController.SetPlayerDead(true);
+            playerController.enabled = false; // Disable player actions
         }
         
-        // Inform GameManager that player is dead (will prevent pause menu access)
+        // Inform GameManager that player is dead.
+        // GameManager's SetPlayerDead might also pause audio, but we want a definitive STOP.
         if (gameManager != null)
         {
-            gameManager.SetPlayerDead(true);
+            gameManager.SetPlayerDead(true); 
+        }
+
+        // Explicitly stop ALL music (main playlist and boss music)
+        if (AudioManager.Instance != null)
+        {
+            Debug.Log("DeathScreenManager: Calling StopAllMusicImmediately on AudioManager.");
+            AudioManager.Instance.StopAllMusicImmediately();
         }
         else
         {
-            // If GameManager not found for some reason, directly stop the music
-            AudioManager.Instance?.StopMusic();
+            Debug.LogWarning("DeathScreenManager: AudioManager.Instance is null. Cannot stop music.");
         }
         
-        // Show name input
         ShowNameInput();
     }
     
     private void ShowNameInput()
     {
-        deathScreenActive = true;
+        deathScreenActive = true; // This flag is used in Update for restart logic
         
-        // Show the appropriate UI
-        deathScreen.SetActive(false);
-        nameInputPanel.SetActive(true);
+        if(deathScreen != null) deathScreen.SetActive(false);
+        if(nameInputPanel != null) nameInputPanel.SetActive(true);
         
-        // Set the prompt text based on whether it's a high score
-        highScorePromptText.text = isHighScore ? defaultNamePrompt : regularScorePrompt;
+        if(highScorePromptText != null) highScorePromptText.text = isHighScore ? defaultNamePrompt : regularScorePrompt;
         
-        // Focus the input field
-        nameInputField.text = "Player";
-        SetInputFieldSelected();
+        if(nameInputField != null)
+        {
+            nameInputField.text = "Player"; // Default or last used name could be loaded here
+            SetSelectedElement(nameInputField.gameObject);
+        }
         
-        // IMPORTANT: Disable button's onClick to prevent it from being triggered by Submit/A button
-        restartButton.onClick.RemoveAllListeners();
-    }
-    
-    private void SetInputFieldSelected()
-    {
-        // Set the input field as the current selection
-        SetSelectedElement(nameInputField.gameObject);
-    }
-    
-    private void SetSubmitButtonSelected()
-    {
-        // Set the submit button as the current selection
-        SetSelectedElement(submitNameButton.gameObject);
+        // Ensure restart button doesn't have old listeners if any
+        if(restartButton != null) restartButton.onClick.RemoveAllListeners();
     }
     
     public void SubmitName()
     {
-        // Prevent double submission
-        if (hasSubmittedName) return;
+        if (hasSubmittedName || inputCooldownTimer > 0) return; // Prevent double/quick submission
         hasSubmittedName = true;
+        inputCooldownTimer = INPUT_COOLDOWN_DURATION; // Cooldown after submission
         
         string playerName = nameInputField.text;
+        if (string.IsNullOrWhiteSpace(playerName)) playerName = "Player";
         
-        // Make sure name isn't empty
-        if (string.IsNullOrWhiteSpace(playerName))
-        {
-            playerName = "Player";
-        }
-        
-        // Save the score to the scoreboard
         if (ScoreboardManager.Instance != null)
         {
             ScoreboardManager.Instance.AddHighScore(playerName, currentScore);
         }
         
-        // Cancel any pending controller/input events
-        Input.ResetInputAxes();
+        Input.ResetInputAxes(); // Clear any buffered input
         
-        // Show death screen after submitting name
-        nameInputPanel.SetActive(false);
-        deathScreen.SetActive(true);
+        if(nameInputPanel != null) nameInputPanel.SetActive(false);
+        if(deathScreen != null) deathScreen.SetActive(true);
         
-        // Clear any existing input from the event system
-        EventSystem.current.SetSelectedGameObject(null);
-        
-        // Wait until next frame to set the button as selected
-        StartCoroutine(SelectRestartButtonNextFrame());
-
-        // Start the input cooldown to prevent immediate restart
-        inputCooldownTimer = INPUT_COOLDOWN_DURATION;
+        // Now that the final death screen is up, assign the restart listener
+        if(restartButton != null)
+        {
+            restartButton.onClick.AddListener(RestartGame);
+            StartCoroutine(SelectRestartButtonNextFrame());
+        }
     }
     
     private System.Collections.IEnumerator SelectRestartButtonNextFrame()
     {
-        // Wait for 2 frames to ensure all input processing has completed
-        yield return null;
-        yield return null;
-        
-        // Now it's safe to select the restart button
-        SetSelectedElement(restartButton.gameObject);
-        EventSystem.current.SetSelectedGameObject(restartButton.gameObject);
+        yield return null; // Wait one frame
+        if(restartButton != null) SetSelectedElement(restartButton.gameObject);
     }
 
     public void RestartGame()
     {
-        // Prevent input spamming
-        if (inputCooldownTimer > 0) return;
-        
+        if (inputCooldownTimer > 0 && !hasSubmittedName) // Allow restart if name was submitted, even during its cooldown
+        {
+             // If name hasn't been submitted, and we are in cooldown, likely an accidental press.
+             // However, if name *was* submitted, the cooldown is to prevent *re-submission*, not restart.
+             // This logic might need refinement based on exact desired flow.
+             // For now, if name is submitted, allow restart.
+        }
+
+
         Time.timeScale = 1f;
         deathScreenActive = false;
-        hasSubmittedName = false; // Reset submission flag
+        hasSubmittedName = false; 
         
-        // Reset player state (though we're reloading the scene, this is for safety)
-        PlayerController playerController = FindObjectOfType<PlayerController>();
-        if (playerController != null)
-        {
-            playerController.SetPlayerDead(false);
-        }
-        
-        // Reset game manager state (though we're reloading the scene, this is for safety)
-        if (gameManager != null)
-        {
-            gameManager.SetPlayerDead(false);
-        }
+        // No need to manually re-enable playerController or reset GameManager.SetPlayerDead(false)
+        // as SceneManager.LoadScene will reset the scene state.
+
+        // It's good practice to ensure AudioManager might restart its music on scene load
+        // The AudioManager's OnSceneLoaded should handle this.
         
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }

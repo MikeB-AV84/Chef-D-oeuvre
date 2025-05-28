@@ -7,38 +7,41 @@ public class GameManager : MonoBehaviour
 
     [Header("Game State")]
     private bool isPaused = false;
-    private bool isPlayerDead = false;  // Add this flag to track player death state
+    private bool isPlayerDead = false;
 
     [Header("UI References")]
     public GameObject pauseMenuUI;
     
     [Header("Scene Management")]
-    public string mainMenuSceneName = "MainMenu";  // Add this for scene loading
+    public string mainMenuSceneName = "MainMenu";
 
-    // References to other managers
     private PlayerController playerController;
-    private AudioManager audioManager;
+    // No direct AudioManager reference needed here if AudioManager is a Singleton an accessible via Instance
 
     void Awake()
     {
-        Instance = this;
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
 
-        // Make sure pause menu is initially hidden
+
         if (pauseMenuUI != null)
         {
             pauseMenuUI.SetActive(false);
         }
 
-        // Find player controller reference
         playerController = FindObjectOfType<PlayerController>();
-
-        // Find audio manager reference
-        audioManager = FindObjectOfType<AudioManager>();
+        // audioManager = FindObjectOfType<AudioManager>(); // Not strictly needed if using Singleton
     }
 
     void Update()
     {
-        // Check for pause input only if player is not dead
         if (!isPlayerDead && (Input.GetButtonDown("Menu_Button") || Input.GetKeyDown(KeyCode.Escape)))
         {
             TogglePause();
@@ -47,7 +50,6 @@ public class GameManager : MonoBehaviour
 
     public void TogglePause()
     {
-        // Don't allow pausing if player is dead
         if (isPlayerDead) return;
 
         isPaused = !isPaused;
@@ -64,9 +66,8 @@ public class GameManager : MonoBehaviour
 
     public void PauseGame()
     {
-        // Don't allow pausing if player is dead
-        if (isPlayerDead) return;
-
+        if (isPlayerDead) return; // Should already be handled by TogglePause check but good to be safe
+        isPaused = true; // Ensure state is set
         Time.timeScale = 0f;
 
         if (pauseMenuUI != null)
@@ -74,85 +75,85 @@ public class GameManager : MonoBehaviour
             pauseMenuUI.SetActive(true);
         }
 
-        // Disable player movement and shooting using SetPlayerDead
         if (playerController != null)
         {
-            playerController.SetPlayerDead(true);
+            // playerController.SetPlayerDead(true); // This seems too aggressive for a simple pause
+                                                 // If SetPlayerDead also disables input, it's okay.
+                                                 // Or use a separate playerController.SetInputEnabled(false);
         }
 
-        // Pause music
-        if (audioManager != null)
+        if (AudioManager.Instance != null)
         {
-            audioManager.PauseMusic();
+            AudioManager.Instance.PauseGameAudio(); // Use new method
         }
     }
 
     public void ResumeGame()
     {
+        // isPaused = false; // Set by TogglePause before calling this
         Time.timeScale = 1f;
-        isPaused = false;
+        // isPaused is already false here if called from TogglePause
 
         if (pauseMenuUI != null)
         {
             pauseMenuUI.SetActive(false);
         }
 
-        // Re-enable player controller only if player is not dead
         if (!isPlayerDead && playerController != null)
         {
-            playerController.SetPlayerDead(false);
+            // playerController.SetPlayerDead(false); // See comment in PauseGame
+            // Or use playerController.SetInputEnabled(true);
         }
 
-        // Resume music if player is not dead
-        if (!isPlayerDead && audioManager != null)
+        if (AudioManager.Instance != null)
         {
-            audioManager.ResumeMusic();
+            AudioManager.Instance.ResumeGameAudio(); // Use new method
         }
     }
 
-    // Add this method to set the player's dead state
     public void SetPlayerDead(bool isDead)
     {
         isPlayerDead = isDead;
         
-        // If player is dead, make sure we handle the game state properly
         if (isDead)
         {
-            // If we're paused, make sure to hide pause menu
-            if (isPaused)
+            if (isPaused) // If player dies while paused
             {
-                isPaused = false;
+                // isPaused = false; // No, keep game paused but hide menu if that's the design
+                Time.timeScale = 0f; // Ensure time remains paused
                 if (pauseMenuUI != null)
                 {
-                    pauseMenuUI.SetActive(false);
+                    // pauseMenuUI.SetActive(false); // Or keep it, depends on design
                 }
             }
             
-            // Stop/pause music if needed
-            if (audioManager != null)
+            if (AudioManager.Instance != null)
             {
-                audioManager.PauseMusic();
+                AudioManager.Instance.PauseGameAudio(); // Player death should pause ongoing sounds
             }
         }
     }
     
-    // Add this method to check if player is dead - needed by PauseMenuUI
     public bool IsPlayerDead()
     {
         return isPlayerDead;
     }
     
-    // Add this method to return to the main menu - needed by PauseMenuUI
     public void ReturnToMenu()
     {
-        // Make sure time scale is back to normal
         Time.timeScale = 1f;
-        
-        // Reset game state
         isPaused = false;
         isPlayerDead = false;
+
+        // Explicitly stop boss music and resume main track if returning to menu
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopBossMusic();
+            AudioManager.Instance.ResumeMainTrackAfterBoss(); // Try to reset main music
+            // Potentially a more forceful stop of all game music might be needed here
+            // depending on how main menu handles its own music.
+        }
         
-        // Load the main menu scene
         SceneManager.LoadScene(mainMenuSceneName);
     }
 }
