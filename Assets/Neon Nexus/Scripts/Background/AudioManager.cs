@@ -558,6 +558,7 @@ public class AudioManager : MonoBehaviour
     // --- General Music Control ---
     public void PlayMainPlaylistMusic() 
     {
+        isSkipping = false; // Reset the skipping state here
         if (isMainMusicPausedForBoss || isMainMusicUserPaused) return;
 
         if (musicRoutine != null) StopCoroutine(musicRoutine);
