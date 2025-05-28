@@ -13431,6 +13431,7 @@ MonoBehaviour:
   bossMusicClip: {fileID: 8300000, guid: 5d7b56b838f04f84ba9873eea0d69222, type: 3}
   skipButton: R3_Button
   doubleClickTime: 0.3
+  MainMenu: MainMenu
 --- !u!82 &1385532647
 AudioSource:
   m_ObjectHideFlags: 0

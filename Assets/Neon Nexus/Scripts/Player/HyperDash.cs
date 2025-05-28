@@ -16,7 +16,7 @@ public class HyperDash : MonoBehaviour
     
     [Header("Combat Settings")]
     public int enemyHitPoints = 50;
-    public int bossDashDamage = 3; // Damage dealt to boss with a dash
+    public int bossDashDamage = 1; // Damage dealt to boss with a dash
     public LayerMask targetLayerMask = -1; // Combined layer mask for enemies and boss
     
     [Header("Audio")]
