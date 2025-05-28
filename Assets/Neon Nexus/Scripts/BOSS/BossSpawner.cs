@@ -7,10 +7,10 @@ public class BossSpawner : MonoBehaviour
     public float spawnDistance = 15f;
     
     [Header("Spawning Condition")]
-    public int scoreToSpawnBoss = 1000; // Score required to spawn the boss
+    public int scoreToSpawnBoss = 1000; // Score required to spawn the first boss
 
     private bool bossActive = false;
-    private bool bossHasSpawnedThisSession = false; // To prevent multiple spawns if score drops and rises again
+    private int lastBossSpawnLevel = 0; // Track which boss level we've spawned (1 = 1000 points, 2 = 2000 points, etc.)
 
     // References to other managers (assign in Inspector or find in Start)
     public EnemySpawner enemySpawner; // Assign your EnemySpawner instance
@@ -31,14 +31,20 @@ public class BossSpawner : MonoBehaviour
         }
     }
 
-
     void Update()
     {
-        if (bossActive || bossHasSpawnedThisSession || player == null) return;
+        if (bossActive || player == null) return;
 
-        if (ScoreManager.Instance != null && ScoreManager.Instance.score >= scoreToSpawnBoss)
+        if (ScoreManager.Instance != null)
         {
-            SpawnBoss();
+            // Calculate current boss level (1 for 1000-1999, 2 for 2000-2999, etc.)
+            int currentBossLevel = ScoreManager.Instance.score / scoreToSpawnBoss;
+            
+            // Check if we've reached a new boss level and haven't spawned that boss yet
+            if (currentBossLevel > lastBossSpawnLevel && ScoreManager.Instance.score >= scoreToSpawnBoss)
+            {
+                SpawnBoss();
+            }
         }
     }
 
@@ -51,9 +57,12 @@ public class BossSpawner : MonoBehaviour
         }
 
         bossActive = true;
-        bossHasSpawnedThisSession = true; // Mark that boss has been triggered
+        
+        // Update the last spawned boss level
+        int currentBossLevel = ScoreManager.Instance.score / scoreToSpawnBoss;
+        lastBossSpawnLevel = currentBossLevel;
 
-        Debug.Log("--- BOSS SPAWNING ---");
+        Debug.Log($"--- BOSS SPAWNING --- Level {currentBossLevel} at score {ScoreManager.Instance.score}");
 
         // Pause Enemy Spawner
         if (enemySpawner != null)
@@ -96,8 +105,7 @@ public class BossSpawner : MonoBehaviour
     {
         Debug.Log("--- BOSS DEFEATED --- Handling post-defeat sequence.");
         bossActive = false;
-        // Note: bossHasSpawnedThisSession remains true. 
-        // If you want the boss to respawn if conditions are met again, reset this flag based on game design.
+        // lastBossSpawnLevel remains at the current level, allowing the next boss to spawn at the next milestone
 
         // Stop Boss Music & Resume Regular Music
         if (AudioManager.Instance != null)

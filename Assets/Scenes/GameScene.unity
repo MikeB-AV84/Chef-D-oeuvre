@@ -827,6 +827,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   pauseMenuUI: {fileID: 589230028}
   mainMenuSceneName: MainMenu
+  pauseButton: Menu_Button
 --- !u!4 &191082412
 Transform:
   m_ObjectHideFlags: 0
@@ -14592,8 +14593,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99c9f4d965d85d940bff117e0ebe73ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dashSpeed: 200
-  dashDistance: 30
+  dashSpeed: 500
+  dashDistance: 50
   dashDuration: 0.5
   dashCooldown: 0
   glowColor: {r: 0.50980395, g: 0.972549, b: 0.88235295, a: 0.8}
