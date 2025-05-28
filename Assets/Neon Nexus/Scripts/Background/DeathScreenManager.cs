@@ -130,7 +130,7 @@ public class DeathScreenManager : MonoBehaviour
         {
             // Restart logic for the final death screen (after name input)
             if (currentSelection == restartButton.gameObject && 
-                (Input.GetButtonDown("Submit") || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.JoystickButton0) || Input.GetKeyDown(KeyCode.JoystickButton2))) // Common confirm buttons
+                Input.GetKeyDown(KeyCode.JoystickButton2)) // Common confirm buttons
             {
                 RestartGame();
             }
@@ -189,7 +189,7 @@ public class DeathScreenManager : MonoBehaviour
             joystickMoved = false;
         }
         
-        if (Input.GetButtonDown("Submit") || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.JoystickButton0)) 
+        if (Input.GetKeyDown(KeyCode.JoystickButton0))
         {
             if (currentSelection == submitNameButton.gameObject || currentSelection == nameInputField.gameObject)
             {
@@ -291,7 +291,6 @@ public class DeathScreenManager : MonoBehaviour
         // Now that the final death screen is up, assign the restart listener
         if(restartButton != null)
         {
-            restartButton.onClick.AddListener(RestartGame);
             StartCoroutine(SelectRestartButtonNextFrame());
         }
     }
