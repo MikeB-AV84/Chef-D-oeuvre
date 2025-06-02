@@ -10,8 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 8163719735968452656}
   - component: {fileID: 8155061793636666003}
-  - component: {fileID: 6389704837492715207}
   - component: {fileID: 516685370520807103}
+  - component: {fileID: 3495952966580870281}
   m_Layer: 0
   m_Name: ShieldPickup
   m_TagString: Untagged
@@ -78,7 +78,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 1
-  m_Sprite: {fileID: -2413806693520163455, guid: a86470a33a6bf42c4b3595704624658b, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 2585f77f50b719d45acf0ddbcb886042, type: 3}
   m_Color: {r: 0.39716092, g: 0.990566, b: 0.8974591, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -89,8 +89,23 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!58 &6389704837492715207
-CircleCollider2D:
+--- !u!114 &516685370520807103
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5138960977784813881}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d899697dfb3520429d218a34735cf88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  lifetime: 15
+  blinkDuration: 10
+  blinkSpeed: 0.3
+--- !u!61 &3495952966580870281
+BoxCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -123,20 +138,15 @@ CircleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_Radius: 0.5
---- !u!114 &516685370520807103
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5138960977784813881}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1d899697dfb3520429d218a34735cf88, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  lifetime: 15
-  blinkDuration: 10
-  blinkSpeed: 0.3
+  m_Offset: {x: 0.00000011920929, y: -0.02682352}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 6.826667, y: 6.826667}
+    newSize: {x: 1, y: 1}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 4.841733, y: 5.5927887}
+  m_EdgeRadius: 0
