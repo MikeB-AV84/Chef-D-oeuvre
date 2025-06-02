@@ -64,7 +64,6 @@ public class PlayerController : MonoBehaviour
         ApplyMovement();
         ClampPosition();
 
-        if (Input.GetKeyDown(KeyCode.Escape)) Application.Quit();
     }
 
     void HandleMovementInput()
