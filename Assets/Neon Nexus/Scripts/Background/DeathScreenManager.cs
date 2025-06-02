@@ -291,6 +291,7 @@ public class DeathScreenManager : MonoBehaviour
         // Now that the final death screen is up, assign the restart listener
         if(restartButton != null)
         {
+            restartButton.onClick.AddListener(RestartGame);
             StartCoroutine(SelectRestartButtonNextFrame());
         }
     }
