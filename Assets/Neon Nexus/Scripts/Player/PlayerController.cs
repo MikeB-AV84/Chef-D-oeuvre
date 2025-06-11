@@ -6,9 +6,11 @@ public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
     public float moveSpeed = 5f;
+    public float moveActivationDistance = 1f; // The player will only move if the cursor is further than this distance
     private float originalSpeed;
     private Rigidbody2D rb;
     private Vector2 moveInput;
+    private Camera mainCamera;
 
     [Header("Movement Boundaries")]
     public float minX = -8f;
@@ -38,63 +40,90 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         originalSpeed = moveSpeed;
         currentBoost = maxBoost;
+        mainCamera = Camera.main;
         UpdateBoostUI();
     }
 
     void Update()
     {
-        // Don't process inputs if player is dead
-        if (isDead) return;
+        // --- MODIFIED CODE START ---
+        // If the player is dead or the game is paused, do nothing.
+        if (isDead || (GameManager.Instance != null && GameManager.Instance.IsGamePaused()))
+        {
+            return;
+        }
+        // --- MODIFIED CODE END ---
         
-        HandleMovementInput();
-        HandleRotation();
+        HandleMouseRotation();
+        HandleAutomaticMovement(); 
         HandleShooting();
         HandleBoostInput();
     }
 
     void FixedUpdate()
     {
-        // Don't apply movement if player is dead
-        if (isDead) 
+        // --- MODIFIED CODE START ---
+        // If the player is dead or the game is paused, stop all movement.
+        if (isDead || (GameManager.Instance != null && GameManager.Instance.IsGamePaused()))
         {
-            rb.linearVelocity = Vector2.zero;
+            rb.linearVelocity = Vector2.zero; // Explicitly stop any current movement
             return;
         }
+        // --- MODIFIED CODE END ---
         
         ApplyMovement();
         ClampPosition();
-
     }
 
-    void HandleMovementInput()
+    /// <summary>
+    /// Rotates the player to face the current mouse cursor position.
+    /// </summary>
+    void HandleMouseRotation()
     {
-        float moveX = Input.GetAxisRaw("Horizontal");
-        float moveY = Input.GetAxisRaw("Vertical");
-        moveInput = new Vector2(moveX, moveY).normalized;
+        Vector3 mouseScreenPos = Input.mousePosition;
+        Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(new Vector3(mouseScreenPos.x, mouseScreenPos.y, mainCamera.nearClipPlane));
+        Vector2 direction = (mouseWorldPos - transform.position).normalized;
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
+        transform.rotation = Quaternion.Euler(0, 0, angle);
     }
 
-    void HandleRotation()
+    /// <summary>
+    /// Moves the player towards the cursor if it's outside the activation distance.
+    /// </summary>
+    void HandleAutomaticMovement()
     {
-        if (moveInput != Vector2.zero)
+        Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
+        float distanceToCursor = Vector2.Distance(transform.position, mouseWorldPos);
+
+        if (distanceToCursor > moveActivationDistance)
         {
-            float angle = Mathf.Atan2(moveInput.y, moveInput.x) * Mathf.Rad2Deg - 90f;
-            transform.rotation = Quaternion.Euler(0, 0, angle);
+            moveInput = transform.up;
+        }
+        else
+        {
+            moveInput = Vector2.zero;
         }
     }
 
+    /// <summary>
+    /// Handles the shooting input.
+    /// </summary>
     void HandleShooting()
     {
-        if (Input.GetButtonDown("Fire1"))
+        if (Input.GetButtonDown("Fire1")) // Left Mouse Button
         {
             Shoot();
         }
     }
 
+    /// <summary>
+    /// Handles the boost input, activating when left shift is held and the player is moving.
+    /// </summary>
     void HandleBoostInput()
     {
-        bool boostInput = Input.GetKey(KeyCode.LeftShift) || Input.GetAxis("RightTrigger") > 0.5f;
+        bool boostInput = Input.GetKey(KeyCode.LeftShift);
         
-        if (boostInput && currentBoost > 0)
+        if (boostInput && currentBoost > 0 && moveInput != Vector2.zero)
         {
             isBoosting = true;
             moveSpeed = originalSpeed * boostMultiplier;
@@ -104,7 +133,10 @@ public class PlayerController : MonoBehaviour
         {
             isBoosting = false;
             moveSpeed = originalSpeed;
-            currentBoost = Mathf.Min(maxBoost, currentBoost + boostRechargeRate * Time.deltaTime);
+            if (currentBoost < maxBoost)
+            {
+               currentBoost = Mathf.Min(maxBoost, currentBoost + boostRechargeRate * Time.deltaTime);
+            }
         }
         
         UpdateBoostUI();
@@ -128,10 +160,8 @@ public class PlayerController : MonoBehaviour
         GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
         Rigidbody2D rbBullet = bullet.GetComponent<Rigidbody2D>();
         
-        // Base bullet velocity
         Vector2 bulletVelocity = firePoint.up * bulletSpeed;
         
-        // Add player velocity if boosting
         if (isBoosting)
         {
             bulletVelocity += rb.linearVelocity;
@@ -146,7 +176,6 @@ public class PlayerController : MonoBehaviour
         if (boostText != null)
         {
             boostText.text = $"{Mathf.RoundToInt(currentBoost)}%";
-            //boostText.text = $"BOOST: {Mathf.RoundToInt(currentBoost)}/{maxBoost}";
         }
     }
 
@@ -163,18 +192,16 @@ public class PlayerController : MonoBehaviour
 
     private IEnumerator SpeedBoostRoutine(float multiplier, float duration)
     {
-        originalSpeed = moveSpeed;
+        float tempOriginalSpeed = originalSpeed;
         moveSpeed *= multiplier;
         yield return new WaitForSeconds(duration);
-        moveSpeed = originalSpeed;
+        moveSpeed = tempOriginalSpeed;
     }
     
-    // New method for DeathScreenManager to call
     public void SetPlayerDead(bool dead)
     {
         isDead = dead;
         
-        // If dead, stop all movement
         if (isDead)
         {
             rb.linearVelocity = Vector2.zero;

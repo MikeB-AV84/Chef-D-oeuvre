@@ -16,7 +16,7 @@ public class GameManager : MonoBehaviour
     public string mainMenuSceneName = "MainMenu";
 
     [Header("Input Settings")]
-    public string pauseButton = "Menu_Button"; // Default Unity Input Manager name for Select/Start button
+    public string pauseButton = "Menu_Button";
 
     private PlayerController playerController;
 
@@ -39,13 +39,21 @@ public class GameManager : MonoBehaviour
 
         playerController = FindObjectOfType<PlayerController>();
     }
+    
+    void Start()
+    {
+        // --- MODIFIED CODE START ---
+        // Set the initial cursor state for gameplay.
+        // For your control scheme, the cursor MUST be visible and unlocked.
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        // --- MODIFIED CODE END ---
+    }
 
     void Update()
     {
-        // Only check for pause input if player is not dead
         if (!isPlayerDead)
         {
-            // Check for pause button (controller) or Escape key
             if (Input.GetButtonDown(pauseButton) || Input.GetKeyDown(KeyCode.Escape))
             {
                 TogglePause();
@@ -68,86 +76,53 @@ public class GameManager : MonoBehaviour
             ResumeGame();
         }
     }
-
+    
     public void PauseGame()
     {
-        if (isPlayerDead) return;
-        
-        Debug.Log("GameManager: Pausing game");
         isPaused = true;
         Time.timeScale = 0f;
-
         if (pauseMenuUI != null)
         {
             pauseMenuUI.SetActive(true);
         }
-
-        // Disable player input/movement
-        if (playerController != null)
-        {
-            playerController.enabled = false; // This will disable all player input
-        }
-
-        // Pause all audio through AudioManager
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.PauseGameAudio();
-        }
-
-        // Show cursor for menu navigation
+        
+        // Make the cursor visible and unlock it for the pause menu
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
     }
 
+
     public void ResumeGame()
     {
-        Debug.Log("GameManager: Resuming game");
         isPaused = false;
         Time.timeScale = 1f;
-
         if (pauseMenuUI != null)
         {
             pauseMenuUI.SetActive(false);
         }
 
-        // Re-enable player input/movement
-        if (!isPlayerDead && playerController != null)
-        {
-            playerController.enabled = true;
-        }
-
-        // Resume all audio through AudioManager
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.ResumeGameAudio();
-        }
-
-        // Hide cursor and lock it for gameplay
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
+        // --- MODIFIED CODE START ---
+        // When resuming, ensure the cursor remains visible and unlocked for gameplay.
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        // --- MODIFIED CODE END ---
     }
-
-    public void SetPlayerDead(bool isDead)
+    
+    public void SetPlayerDead(bool dead)
     {
-        Debug.Log($"GameManager: SetPlayerDead called with {isDead}");
-        isPlayerDead = isDead;
-        
-        if (isDead)
+        isPlayerDead = dead;
+
+        if (isPlayerDead)
         {
-            // If player dies while game is paused, close pause menu
-            if (isPaused)
+            if(isPaused)
             {
-                isPaused = false; // Reset pause state
+                isPaused = false;
                 if (pauseMenuUI != null)
                 {
                     pauseMenuUI.SetActive(false);
                 }
             }
             
-            // Time.timeScale will be set to 0 by DeathScreenManager
-            // Audio will be stopped by DeathScreenManager calling StopAllMusicImmediately
-            
-            // Disable player controller
             if (playerController != null)
             {
                 playerController.enabled = false;
@@ -155,8 +130,6 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            // Player respawned/revived - this might not be used in your current setup
-            // but good to have for completeness
             if (playerController != null)
             {
                 playerController.enabled = true;
@@ -181,7 +154,10 @@ public class GameManager : MonoBehaviour
         isPaused = false;
         isPlayerDead = false;
 
-        // Stop all music and reset audio states
+        // Ensure cursor is visible for the main menu
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.StopAllMusicImmediately();
