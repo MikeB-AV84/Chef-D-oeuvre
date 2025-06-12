@@ -121,7 +121,7 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     void HandleBoostInput()
     {
-        bool boostInput = Input.GetKey(KeyCode.LeftShift);
+        bool boostInput = Input.GetKey(KeyCode.Space);
         
         if (boostInput && currentBoost > 0 && moveInput != Vector2.zero)
         {
