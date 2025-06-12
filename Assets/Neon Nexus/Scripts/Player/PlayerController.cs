@@ -32,6 +32,10 @@ public class PlayerController : MonoBehaviour
     private float currentBoost;
     private bool isBoosting;
     
+    [Header("Input Detection")]
+    public float controllerThreshold = 0.1f;
+    private bool useMouseFollow = true; // Start with mouse following enabled
+    
     // Death state
     private bool isDead = false;
 
@@ -54,8 +58,18 @@ public class PlayerController : MonoBehaviour
         }
         // --- MODIFIED CODE END ---
         
-        HandleMouseRotation();
-        HandleAutomaticMovement(); 
+        DetectInputType();
+        
+        if (useMouseFollow)
+        {
+            HandleMouseRotation();
+            HandleAutomaticMovement(); 
+        }
+        else
+        {
+            HandleControllerMovement();
+        }
+        
         HandleShooting();
         HandleBoostInput();
     }
@@ -75,6 +89,25 @@ public class PlayerController : MonoBehaviour
         ClampPosition();
     }
 
+    void DetectInputType()
+    {
+        // Check for any controller stick movement
+        bool controllerInput = Mathf.Abs(Input.GetAxis("Horizontal")) > controllerThreshold || 
+                              Mathf.Abs(Input.GetAxis("Vertical")) > controllerThreshold;
+        
+        // Check for mouse movement
+        bool mouseInput = Input.GetAxis("Mouse X") != 0 || Input.GetAxis("Mouse Y") != 0;
+        
+        if (controllerInput)
+        {
+            useMouseFollow = false;
+        }
+        else if (mouseInput)
+        {
+            useMouseFollow = true;
+        }
+    }
+
     /// <summary>
     /// Rotates the player to face the current mouse cursor position.
     /// </summary>
@@ -85,6 +118,30 @@ public class PlayerController : MonoBehaviour
         Vector2 direction = (mouseWorldPos - transform.position).normalized;
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
         transform.rotation = Quaternion.Euler(0, 0, angle);
+    }
+
+    /// <summary>
+    /// Handles controller movement and rotation
+    /// </summary>
+    void HandleControllerMovement()
+    {
+        float horizontal = Input.GetAxis("Horizontal");
+        float vertical = Input.GetAxis("Vertical");
+        
+        Vector2 controllerInput = new Vector2(horizontal, vertical);
+        
+        if (controllerInput.magnitude > controllerThreshold)
+        {
+            moveInput = controllerInput.normalized;
+            
+            // Rotate player to face movement direction
+            float angle = Mathf.Atan2(moveInput.y, moveInput.x) * Mathf.Rad2Deg - 90f;
+            transform.rotation = Quaternion.Euler(0, 0, angle);
+        }
+        else
+        {
+            moveInput = Vector2.zero;
+        }
     }
 
     /// <summary>
