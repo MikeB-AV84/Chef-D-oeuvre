@@ -81,9 +81,16 @@ public class GameManager : MonoBehaviour
     {
         isPaused = true;
         Time.timeScale = 0f;
+
         if (pauseMenuUI != null)
         {
             pauseMenuUI.SetActive(true);
+        }
+
+        // Pause all audio through AudioManager
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PauseGameAudio();
         }
         
         // Make the cursor visible and unlock it for the pause menu
@@ -99,6 +106,11 @@ public class GameManager : MonoBehaviour
         if (pauseMenuUI != null)
         {
             pauseMenuUI.SetActive(false);
+        }
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.ResumeGameAudio();
         }
 
         // --- MODIFIED CODE START ---
