@@ -177,7 +177,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23b1fdd5a43a2204fab5a2a4b0ecb0e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pointsValue: 10
+  pointsValue: 50
   shieldPickupPrefab: {fileID: 5138960977784813881, guid: 0d99e6cdb1dec184f851834de6a1c47c, type: 3}
   heartPickupPrefab: {fileID: 6840657895234986194, guid: da3d09542b1c4fa40b5b82069615736e, type: 3}
   dropChance: 0.15
