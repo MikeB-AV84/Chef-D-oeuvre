@@ -178,7 +178,7 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     void HandleBoostInput()
     {
-        bool boostInput = Input.GetKey(KeyCode.Space);
+        bool boostInput = Input.GetKey(KeyCode.Space) || Input.GetAxis("RightTrigger") > 0.1f;
         
         if (boostInput && currentBoost > 0 && moveInput != Vector2.zero)
         {
