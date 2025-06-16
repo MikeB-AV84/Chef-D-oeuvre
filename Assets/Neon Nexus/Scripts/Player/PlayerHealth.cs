@@ -48,7 +48,7 @@ public class PlayerHealth : MonoBehaviour
     {
         if (livesText != null)
         {
-            livesText.text = "Lives : " + playerLives + "/" + maxLives;
+            livesText.text = "HP : " + playerLives + "/" + maxLives;
         }
     }
 
