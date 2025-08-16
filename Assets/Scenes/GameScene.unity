@@ -13423,6 +13423,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: f3ddaa7d63ad4f44e9dcedeb23ae839f, type: 3}
   - {fileID: 8300000, guid: 128c88aae90184c4cb2c37c7c6ba42f9, type: 3}
   - {fileID: 8300000, guid: 29b1ee5feb535964186fee9f60d0fe05, type: 3}
+  - {fileID: 8300000, guid: 212281c71c842d241b77804fb6f205a8, type: 3}
   musicSource: {fileID: 1385532647}
   musicVolume: 0.102
   trackSwitchDelay: 1
@@ -14488,6 +14489,7 @@ MonoBehaviour:
   boostRechargeRate: 15
   maxBoost: 100
   boostText: {fileID: 196811126}
+  controllerThreshold: 0.1
 --- !u!114 &1777141546
 MonoBehaviour:
   m_ObjectHideFlags: 0
